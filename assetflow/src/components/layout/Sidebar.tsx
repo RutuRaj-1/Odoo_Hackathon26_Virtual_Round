@@ -15,6 +15,7 @@ import {
 import { cn } from '@/utils'
 import { ROUTES } from '@/constants'
 import { useAuth } from '@/hooks/useAuth'
+import { isAdmin, isAssetManager, isDepartmentHead, isEmployee } from '@/routes/guards'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface SidebarProps {
@@ -29,10 +30,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   // Get specific dashboard path
   let dashboardPath: string = ROUTES.DASHBOARD
-  if (role === 'Admin') dashboardPath = '/admin/dashboard'
-  else if (role === 'Asset Manager') dashboardPath = '/asset-manager/dashboard'
-  else if (role === 'Department Head') dashboardPath = '/department/dashboard'
-  else if (role === 'Employee') dashboardPath = '/employee/dashboard'
+  if (isAdmin(role)) dashboardPath = '/admin/dashboard'
+  else if (isAssetManager(role)) dashboardPath = '/asset-manager/dashboard'
+  else if (isDepartmentHead(role)) dashboardPath = '/department/dashboard'
+  else if (isEmployee(role)) dashboardPath = '/employee/dashboard'
 
   // Dynamic Navigation Items
   const navItems = [
@@ -64,7 +65,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   ]
 
   // Inject Organization Setup for Admins
-  if (role === 'Admin') {
+  if (isAdmin(role)) {
     navItems.push({
       label: 'Organization',
       href: '/admin/organization',

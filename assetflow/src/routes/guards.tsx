@@ -2,7 +2,32 @@ import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/constants'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
-// ─── Protected Route (Requires authentication) ─────────────────────────────────
+// ─── Case-Insensitive Role Normalizer Helpers ─────────────────────────────────
+export function isAdmin(role?: string | null): boolean {
+  if (!role) return false
+  const r = role.toLowerCase().replace(/[\s_-]/g, '')
+  return r === 'admin'
+}
+
+export function isAssetManager(role?: string | null): boolean {
+  if (!role) return false
+  const r = role.toLowerCase().replace(/[\s_-]/g, '')
+  return r === 'assetmanager' || r === 'manager'
+}
+
+export function isDepartmentHead(role?: string | null): boolean {
+  if (!role) return false
+  const r = role.toLowerCase().replace(/[\s_-]/g, '')
+  return r === 'departmenthead' || r === 'head'
+}
+
+export function isEmployee(role?: string | null): boolean {
+  if (!role) return false
+  const r = role.toLowerCase().replace(/[\s_-]/g, '')
+  return r === 'employee'
+}
+
+// ─── Protected Route ───────────────────────────────────────────────────────────
 export function ProtectedRoute() {
   const { uid, loading } = useAuth()
   const location = useLocation()
@@ -22,14 +47,14 @@ export function ProtectedRoute() {
   return <Outlet />
 }
 
-// ─── Guest Route (Requires unauthenticated status) ────────────────────────────
+// ─── Guest Route ───────────────────────────────────────────────────────────────
 export function GuestRoute() {
   const { uid, loading } = useAuth()
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0c]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
@@ -47,8 +72,8 @@ export function RoleDashboardRedirect() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0c]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
@@ -57,18 +82,17 @@ export function RoleDashboardRedirect() {
     return <Navigate to={ROUTES.LOGIN} replace />
   }
 
-  // Redirect based on the Firestore user role
-  switch (role) {
-    case 'Admin':
-      return <Navigate to="/admin/dashboard" replace />
-    case 'Asset Manager':
-      return <Navigate to="/asset-manager/dashboard" replace />
-    case 'Department Head':
-      return <Navigate to="/department/dashboard" replace />
-    case 'Employee':
-    default:
-      return <Navigate to="/employee/dashboard" replace />
+  if (isAdmin(role)) {
+    return <Navigate to="/admin/dashboard" replace />
   }
+  if (isAssetManager(role)) {
+    return <Navigate to="/asset-manager/dashboard" replace />
+  }
+  if (isDepartmentHead(role)) {
+    return <Navigate to="/department/dashboard" replace />
+  }
+  
+  return <Navigate to="/employee/dashboard" replace />
 }
 
 // ─── Role-Based Guards ──────────────────────────────────────────────────────────
@@ -77,8 +101,8 @@ export function AdminRoute() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0c]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
@@ -87,7 +111,7 @@ export function AdminRoute() {
     return <Navigate to={ROUTES.LOGIN} replace />
   }
 
-  if (role !== 'Admin') {
+  if (!isAdmin(role)) {
     return <Navigate to="/unauthorized" replace />
   }
 
@@ -99,8 +123,8 @@ export function AssetManagerRoute() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0c]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
@@ -109,7 +133,7 @@ export function AssetManagerRoute() {
     return <Navigate to={ROUTES.LOGIN} replace />
   }
 
-  if (role !== 'Asset Manager') {
+  if (!isAssetManager(role)) {
     return <Navigate to="/unauthorized" replace />
   }
 
@@ -121,8 +145,8 @@ export function DepartmentHeadRoute() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0c]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
@@ -131,7 +155,7 @@ export function DepartmentHeadRoute() {
     return <Navigate to={ROUTES.LOGIN} replace />
   }
 
-  if (role !== 'Department Head') {
+  if (!isDepartmentHead(role)) {
     return <Navigate to="/unauthorized" replace />
   }
 
@@ -143,8 +167,8 @@ export function EmployeeRoute() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0c]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     )
   }
@@ -153,7 +177,7 @@ export function EmployeeRoute() {
     return <Navigate to={ROUTES.LOGIN} replace />
   }
 
-  if (role !== 'Employee') {
+  if (!isEmployee(role)) {
     return <Navigate to="/unauthorized" replace />
   }
 
