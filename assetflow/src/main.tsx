@@ -6,7 +6,11 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ToastProvider } from '@/components/ui/toast'
 import { router } from '@/routes'
+import { seedDatabase } from '@/utils/seedDatabase'
 import '@/index.css'
+
+// Automatically trigger database seed (will abort if data already exists)
+seedDatabase()
 
 // ─── TanStack Query Client ─────────────────────────────────────────────────────
 const queryClient = new QueryClient({
