@@ -27,6 +27,7 @@ import {
 } from 'recharts'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
+import { useAuth } from '@/hooks/useAuth'
 
 // ─── Static / Default Mock Fallbacks (for premium visuals on empty database) ────
 const defaultAssetTrendData = [
@@ -71,6 +72,7 @@ const cardVariants: Variants = {
 }
 
 export function DashboardPage() {
+  const { uid, loading: authLoading } = useAuth()
   const [counts, setCounts] = useState({
     totalAssets: 0,
     activeEmployees: 0,
@@ -81,6 +83,8 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading || !uid) return
+
     async function loadDashboardData() {
       try {
         const [assetsSnap, usersSnap, bookingsSnap, maintenanceSnap] = await Promise.all([
@@ -132,7 +136,7 @@ export function DashboardPage() {
       }
     }
     loadDashboardData()
-  }, [])
+  }, [uid, authLoading])
 
   const statsCards = [
     {

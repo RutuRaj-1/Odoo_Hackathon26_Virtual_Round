@@ -832,7 +832,7 @@ export function OrganizationPage() {
                 >
                   <option value="">Unassigned</option>
                   {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
+                    <option key={d.departmentId} value={d.departmentId}>
                       {d.name}
                     </option>
                   ))}
