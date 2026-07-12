@@ -43,6 +43,10 @@ AssetFlow provides a comprehensive, conflict-aware solution:
 
 ---
 
+![analytics page](assets/analytics_2.jpeg)
+
+---
+
 ![landing page](assets/landing_page.jpeg)
 
 ---
