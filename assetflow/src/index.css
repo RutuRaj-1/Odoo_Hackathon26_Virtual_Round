@@ -3,19 +3,19 @@
 /* ── Step 1: Raw CSS variables (Light and Dark) ───────────────────────────── */
 :root {
   --background:           #F8FAFC;
-  --foreground:           #0F172A;
+  --foreground:           #1E293B;
   --card:                 #FFFFFF;
-  --card-foreground:      #0F172A;
+  --card-foreground:      #1E293B;
   --popover:              #FFFFFF;
-  --popover-foreground:   #0F172A;
+  --popover-foreground:   #1E293B;
   --primary:              #714B67;
   --primary-foreground:   #FFFFFF;
   --secondary:            #F1F5F9;
-  --secondary-foreground: #0F172A;
+  --secondary-foreground: #1E293B;
   --muted:                #F1F5F9;
   --muted-foreground:     #64748B;
   --accent:               #F1F5F9;
-  --accent-foreground:    #0F172A;
+  --accent-foreground:    #1E293B;
   --destructive:          #EF4444;
   --destructive-foreground: #FFFFFF;
   --border:               #E2E8F0;
@@ -27,25 +27,25 @@
 }
 
 .dark {
-  --background:           #0B0B0E;
-  --foreground:           #F1F5F9;
-  --card:                 #111116;
-  --card-foreground:      #F1F5F9;
-  --popover:              #111116;
-  --popover-foreground:   #F1F5F9;
-  --primary:              #8A5E7E;
+  --background:           #0F172A;
+  --foreground:           #F8FAFC;
+  --card:                 #1E293B;
+  --card-foreground:      #F8FAFC;
+  --popover:              #1E293B;
+  --popover-foreground:   #F8FAFC;
+  --primary:              #714B67;
   --primary-foreground:   #FFFFFF;
-  --secondary:            #1B1A22;
-  --secondary-foreground: #F1F5F9;
-  --muted:                #1E1D27;
-  --muted-foreground:     #94A3B8;
-  --accent:               #1E1D27;
-  --accent-foreground:    #F1F5F9;
+  --secondary:            #111827;
+  --secondary-foreground: #F8FAFC;
+  --muted:                #111827;
+  --muted-foreground:     #CBD5E1;
+  --accent:               #111827;
+  --accent-foreground:    #F8FAFC;
   --destructive:          #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border:               #23222B;
-  --input:                #23222B;
-  --ring:                 #8A5E7E;
+  --border:               #334155;
+  --input:                #334155;
+  --ring:                 #714B67;
   --success:              #22C55E;
   --warning:              #F59E0B;
   --error:                #EF4444;

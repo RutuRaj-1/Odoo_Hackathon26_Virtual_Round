@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import {
@@ -12,9 +12,11 @@ import {
   Building,
   Bell,
   Activity,
-  Check,
+  ArrowLeftRight,
   AlertTriangle,
-  ArrowLeftRight
+  Inbox,
+  ArrowUpRight,
+  ShieldCheck
 } from 'lucide-react'
 import {
   AreaChart,
@@ -35,21 +37,24 @@ import { firestoreService } from '@/services/firestoreService'
 import { bookingService } from '@/services/bookingService'
 import { assetService } from '@/services/assetService'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/contexts/ThemeContext'
 import type { Asset } from '@/types'
 
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
+// ─── Theme Colors ─────────────────────────────────────────────────────────────
+const CHART_COLORS = ['#714B67', '#3B82F6', '#22C55E', '#F59E0B', '#EF4444', '#64748B']
 
 const containerVariants: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.07 } }
+  show: { transition: { staggerChildren: 0.05 } }
 }
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } }
 }
 
 export function DashboardPage() {
   const { uid, loading: authLoading } = useAuth()
+  const { resolvedTheme } = useTheme()
   
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({
@@ -80,13 +85,19 @@ export function DashboardPage() {
         setRecentActivity(stats.recentActivity)
         setNotifications(stats.notifications)
 
+        // Fetch categories to resolve IDs to names
+        let cats: any[] = []
+        try {
+          cats = await firestoreService.getCategories()
+        } catch (_) {}
+
         // Pending bookings count
         try {
           const bookingsResp = await bookingService.getAll({ status: 'pending', page: 1, pageSize: 100 })
           setPendingBookings(bookingsResp.total)
         } catch (_) {}
 
-        // Overdue assets: allocated but not returned past expected date
+        // Overdue assets count
         try {
           const assetsResp = await assetService.getAll({ status: 'Allocated', page: 1, pageSize: 500 })
           const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
@@ -97,12 +108,13 @@ export function DashboardPage() {
           setOverdueCount(overdue.length)
         } catch (_) {}
 
-        // Process Category Data
+        // Process Category Data resolving categoryId to Category Name
         if (stats.allAssets.length > 0) {
           const countsMap: Record<string, number> = {}
           stats.allAssets.forEach((asset: Asset) => {
-            const cat = asset.categoryId || 'Uncategorized'
-            countsMap[cat] = (countsMap[cat] || 0) + 1
+            const catId = asset.categoryId || 'Uncategorized'
+            const catName = cats.find(c => c.categoryId === catId)?.name || catId
+            countsMap[catName] = (countsMap[catName] || 0) + 1
           })
           setCategoryData(Object.keys(countsMap).map(name => ({ name, value: countsMap[name] })))
         }
@@ -147,6 +159,30 @@ export function DashboardPage() {
     loadDashboardData()
   }, [uid, authLoading])
 
+  // Total categories value sum for percentages
+  const categoryTotal = useMemo(() => {
+    return categoryData.reduce((sum, item) => sum + item.value, 0)
+  }, [categoryData])
+
+  // Custom legend formatter to show values and percentages
+  const renderLegendText = (value: string) => {
+    const item = categoryData.find(c => c.name === value)
+    if (!item) return value
+    const percentage = categoryTotal > 0 ? ((item.value / categoryTotal) * 100).toFixed(0) : 0
+    return (
+      <span className="text-xs font-semibold text-muted-foreground mr-3">
+        <span className="text-foreground">{value}</span> ({item.value} • {percentage}%)
+      </span>
+    )
+  }
+
+  // Theme-aware Chart Props
+  const gridStroke = resolvedTheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.05)'
+  const axisColor = resolvedTheme === 'dark' ? '#94A3B8' : '#64748B'
+  const tooltipBg = resolvedTheme === 'dark' ? '#1E293B' : '#FFFFFF'
+  const tooltipBorder = resolvedTheme === 'dark' ? '#334155' : '#E2E8F0'
+  const tooltipText = resolvedTheme === 'dark' ? '#F8FAFC' : '#1E293B'
+
   const statsCards = [
     {
       id: 'available-assets',
@@ -155,7 +191,7 @@ export function DashboardPage() {
       change: 'Ready to allocate',
       trend: 'up',
       icon: CheckCircle2,
-      color: 'bg-emerald-500/10 text-emerald-500'
+      color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
     },
     {
       id: 'allocated-assets',
@@ -164,7 +200,7 @@ export function DashboardPage() {
       change: 'Currently in use',
       trend: 'up',
       icon: ArrowLeftRight,
-      color: 'bg-indigo-500/10 text-indigo-500'
+      color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
     },
     {
       id: 'total-assets',
@@ -173,7 +209,7 @@ export function DashboardPage() {
       change: 'Registered',
       trend: 'up',
       icon: Package,
-      color: 'bg-blue-500/10 text-blue-500'
+      color: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
     },
     {
       id: 'active-bookings',
@@ -182,7 +218,7 @@ export function DashboardPage() {
       change: 'Pending approval',
       trend: 'up',
       icon: CalendarCheck,
-      color: 'bg-purple-500/10 text-purple-500'
+      color: 'bg-purple-500/10 text-purple-500 border-purple-500/20'
     },
     {
       id: 'open-maintenance',
@@ -191,7 +227,7 @@ export function DashboardPage() {
       change: 'Open tickets',
       trend: 'down',
       icon: Wrench,
-      color: 'bg-orange-500/10 text-orange-500'
+      color: 'bg-orange-500/10 text-orange-500 border-orange-500/20'
     },
     {
       id: 'total-departments',
@@ -200,17 +236,20 @@ export function DashboardPage() {
       change: 'Active',
       trend: 'up',
       icon: Building,
-      color: 'bg-pink-500/10 text-pink-500'
+      color: 'bg-pink-500/10 text-pink-500 border-pink-500/20'
     }
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Today's Overview</h2>
-        <p className="text-sm text-white/60">
-          Welcome back — here's what's happening with your assets today.
-        </p>
+    <div className="space-y-8">
+      {/* Page Title */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Today's Overview</h2>
+          <p className="text-sm text-muted-foreground">
+            Welcome back — here's the operational status of your organization today.
+          </p>
+        </div>
       </div>
 
       {/* Overdue Alert Banner */}
@@ -218,12 +257,15 @@ export function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-5 py-3"
+          className="flex items-center gap-3.5 rounded-xl border border-red-500/30 bg-red-500/5 px-5 py-4 shadow-sm"
         >
-          <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0" />
-          <p className="text-sm text-rose-300 font-medium">
-            {overdueCount} asset{overdueCount > 1 ? 's' : ''} overdue for return — flagged for follow-up.
-          </p>
+          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-foreground font-semibold">Overdue Allocations Alert</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {overdueCount} asset{overdueCount > 1 ? 's are' : ' is'} currently overdue for return. Please follow up with assigned employees.
+            </p>
+          </div>
         </motion.div>
       )}
 
@@ -232,7 +274,7 @@ export function DashboardPage() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
       >
         {statsCards.map((card) => {
           const Icon = card.icon
@@ -240,23 +282,27 @@ export function DashboardPage() {
             <motion.div
               key={card.id}
               variants={cardVariants}
-              className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ duration: 0.2 }}
+              className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all cursor-pointer"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col justify-between h-full gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{card.label}</span>
+                  <div className={`rounded-xl p-2.5 border ${card.color}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-white/60">{card.label}</p>
-                  <p className="mt-1.5 text-3xl font-bold text-white">{card.value}</p>
-                  <div className="mt-1 flex items-center gap-1 text-xs">
+                  <h3 className="text-3xl font-extrabold tracking-tight text-foreground">{card.value}</h3>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <TrendingUp
-                      className={`h-3 w-3 ${card.trend === 'up' ? 'text-emerald-500' : 'rotate-180 text-orange-500'}`}
+                      className={`h-3.5 w-3.5 ${card.trend === 'up' ? 'text-success' : 'rotate-180 text-warning'}`}
                     />
-                    <span className={card.trend === 'up' ? 'text-emerald-500' : 'text-orange-500'}>
+                    <span className={card.trend === 'up' ? 'text-success font-medium' : 'text-warning font-medium'}>
                       {card.change}
                     </span>
                   </div>
-                </div>
-                <div className={`rounded-lg p-2.5 ${card.color}`}>
-                  <Icon className="h-5 w-5" />
                 </div>
               </div>
             </motion.div>
@@ -265,36 +311,41 @@ export function DashboardPage() {
       </motion.div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Asset Trend */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
           animate="show"
-          className="col-span-2 rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
+          className="col-span-2 rounded-2xl border border-border bg-card p-6 shadow-sm"
         >
-          <h3 className="mb-4 text-sm font-semibold text-white">Asset Status Trend (Last 6 Months)</h3>
-          <ResponsiveContainer width="100%" height={220}>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-base font-bold text-foreground">Asset Status Trend</h3>
+              <p className="text-xs text-muted-foreground">Monthly growth and maintenance levels (6 Months)</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
             {loading ? (
-               <div className="h-full flex items-center justify-center text-white/40">Loading Chart...</div>
+               <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Loading chart...</div>
             ) : (
-              <AreaChart data={assetTrendData}>
+              <AreaChart data={assetTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#714B67" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#714B67" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                <YAxis tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: axisColor }} axisLine={{ stroke: gridStroke }} />
+                <YAxis tick={{ fontSize: 11, fill: axisColor }} axisLine={{ stroke: gridStroke }} />
                 <Tooltip
-                  contentStyle={{ background: '#0c0c0f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
-                  itemStyle={{ color: '#fff' }}
+                  contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 12, color: tooltipText, fontSize: 12 }}
+                  itemStyle={{ color: tooltipText }}
                 />
-                <Legend />
-                <Area type="monotone" dataKey="active" stroke="#6366f1" fill="url(#activeGrad)" strokeWidth={2} name="Active" />
-                <Area type="monotone" dataKey="maintenance" stroke="#f59e0b" fill="transparent" strokeWidth={2} strokeDasharray="4 2" name="Maintenance" />
+                <Legend iconType="circle" />
+                <Area type="monotone" dataKey="active" stroke="#714B67" fill="url(#activeGrad)" strokeWidth={2} name="Active Assets" />
+                <Area type="monotone" dataKey="maintenance" stroke="#F59E0B" fill="transparent" strokeWidth={2} strokeDasharray="4 2" name="Under Maintenance" />
               </AreaChart>
             )}
           </ResponsiveContainer>
@@ -305,22 +356,28 @@ export function DashboardPage() {
           variants={cardVariants}
           initial="hidden"
           animate="show"
-          className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
+          className="rounded-2xl border border-border bg-card p-6 shadow-sm"
         >
-          <h3 className="mb-4 text-sm font-semibold text-white">Assets by Category</h3>
-          <ResponsiveContainer width="100%" height={220}>
+          <div className="mb-6">
+            <h3 className="text-base font-bold text-foreground">Assets by Category</h3>
+            <p className="text-xs text-muted-foreground">Distribution across hardware & resources</p>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
              {loading ? (
-               <div className="h-full flex items-center justify-center text-white/40">Loading Chart...</div>
+               <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Loading chart...</div>
             ) : categoryData.length === 0 ? (
-               <div className="h-full flex items-center justify-center text-white/40">No Asset Data</div>
+               <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                 <Inbox className="h-8 w-8 opacity-30" />
+                 <span className="text-xs">No asset data found</span>
+               </div>
             ) : (
               <PieChart>
                 <Pie
                   data={categoryData}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={85}
+                  cy="45%"
+                  innerRadius={68}
+                  outerRadius={88}
                   paddingAngle={3}
                   dataKey="value"
                 >
@@ -329,10 +386,10 @@ export function DashboardPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ background: '#0c0c0f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
-                  itemStyle={{ color: '#fff' }}
+                  contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 12, color: tooltipText, fontSize: 12 }}
+                  itemStyle={{ color: tooltipText }}
                 />
-                <Legend />
+                <Legend verticalAlign="bottom" align="center" formatter={renderLegendText} layout="horizontal" iconType="circle" />
               </PieChart>
             )}
           </ResponsiveContainer>
@@ -340,59 +397,68 @@ export function DashboardPage() {
       </div>
 
       {/* Charts Row 2 + Recent Activity */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Maintenance Bar Chart */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
           animate="show"
-          className="col-span-2 rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
+          className="col-span-2 rounded-2xl border border-border bg-card p-6 shadow-sm"
         >
-          <h3 className="mb-4 text-sm font-semibold text-white">Maintenance Volume</h3>
-          <ResponsiveContainer width="100%" height={200}>
+          <div className="mb-6">
+            <h3 className="text-base font-bold text-foreground">Maintenance Volume</h3>
+            <p className="text-xs text-muted-foreground">Weekly report of incidents and resolved tickets</p>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
             {loading ? (
-              <div className="h-full flex items-center justify-center text-white/40">Loading Chart...</div>
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Loading chart...</div>
             ) : (
-              <BarChart data={maintenanceData} barSize={20}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="week" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                <YAxis tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+              <BarChart data={maintenanceData} barSize={16} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="week" tick={{ fontSize: 11, fill: axisColor }} axisLine={{ stroke: gridStroke }} />
+                <YAxis tick={{ fontSize: 11, fill: axisColor }} axisLine={{ stroke: gridStroke }} />
                 <Tooltip
-                  contentStyle={{ background: '#0c0c0f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
-                  itemStyle={{ color: '#fff' }}
+                  contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 12, color: tooltipText, fontSize: 12 }}
+                  itemStyle={{ color: tooltipText }}
                 />
-                <Legend />
-                <Bar dataKey="pending" fill="#6366f1" radius={[4, 4, 0, 0]} name="Pending" />
-                <Bar dataKey="inProgress" fill="#f59e0b" radius={[4, 4, 0, 0]} name="In Progress" />
-                <Bar dataKey="resolved" fill="#22c55e" radius={[4, 4, 0, 0]} name="Resolved" />
+                <Legend iconType="circle" />
+                <Bar dataKey="pending" fill="#714B67" radius={[4, 4, 0, 0]} name="Pending" />
+                <Bar dataKey="inProgress" fill="#F59E0B" radius={[4, 4, 0, 0]} name="In Progress" />
+                <Bar dataKey="resolved" fill="#22C55E" radius={[4, 4, 0, 0]} name="Resolved" />
               </BarChart>
             )}
           </ResponsiveContainer>
         </motion.div>
 
         {/* Right Column: Activity & Notifications */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           <motion.div
             variants={cardVariants}
             initial="hidden"
             animate="show"
-            className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm flex-1"
+            className="rounded-2xl border border-border bg-card p-6 shadow-sm flex-1 flex flex-col justify-between"
           >
-            <h3 className="mb-4 text-sm font-semibold text-white flex items-center gap-2">
-              <Activity className="h-4 w-4 text-indigo-400" />
+            <h3 className="mb-4 text-sm font-bold text-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
               Recent Activity
             </h3>
-            <ul className="space-y-4">
+            <ul className="space-y-4 flex-1">
               {loading ? (
-                <li className="text-xs text-white/40">Loading activity...</li>
+                <li className="text-xs text-muted-foreground">Loading activity...</li>
               ) : recentActivity.length === 0 ? (
-                <li className="text-xs text-white/40">No recent activity.</li>
-              ) : recentActivity.map((item) => (
-                <li key={item.id} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <div className="flex flex-col items-center justify-center py-8 text-center h-full">
+                  <Activity className="h-7 w-7 text-muted-foreground/30 mb-2" />
+                  <p className="text-xs font-semibold text-foreground">No Recent Activity</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Everything is running smoothly.</p>
+                </div>
+              ) : recentActivity.slice(0, 3).map((item) => (
+                <li key={item.id} className="flex items-start gap-3 text-xs">
+                  <div className="h-6 w-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-white/90">{item.action}</p>
-                    <p className="mt-0.5 text-[10px] text-white/40">
+                    <p className="font-semibold text-foreground">{item.action}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
                       {item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString() : 'Just now'}
                     </p>
                   </div>
@@ -405,24 +471,28 @@ export function DashboardPage() {
             variants={cardVariants}
             initial="hidden"
             animate="show"
-            className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm flex-1"
+            className="rounded-2xl border border-border bg-card p-6 shadow-sm flex-1 flex flex-col justify-between"
           >
-            <h3 className="mb-4 text-sm font-semibold text-white flex items-center gap-2">
-              <Bell className="h-4 w-4 text-orange-400" />
+            <h3 className="mb-4 text-sm font-bold text-foreground flex items-center gap-2">
+              <Bell className="h-4 w-4 text-warning" />
               Unread Notifications
             </h3>
-            <ul className="space-y-4">
+            <ul className="space-y-4 flex-1">
               {loading ? (
-                <li className="text-xs text-white/40">Loading notifications...</li>
+                <li className="text-xs text-muted-foreground">Loading notifications...</li>
               ) : notifications.length === 0 ? (
-                <li className="text-xs text-white/40">You're all caught up!</li>
-              ) : notifications.map((notif) => (
-                <li key={notif.id} className="flex items-start gap-3">
-                  <div className="h-2 w-2 mt-1.5 rounded-full bg-orange-500/50 shrink-0" />
+                <div className="flex flex-col items-center justify-center py-8 text-center h-full">
+                  <ShieldCheck className="h-7 w-7 text-muted-foreground/30 mb-2" />
+                  <p className="text-xs font-semibold text-foreground">No Notifications</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">You're all caught up!</p>
+                </div>
+              ) : notifications.slice(0, 2).map((notif) => (
+                <li key={notif.id} className="flex items-start gap-3 text-xs">
+                  <div className="h-2 w-2 mt-1.5 rounded-full bg-warning shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-white/90">{notif.title}</p>
-                    <p className="text-[10px] text-white/60">{notif.message}</p>
-                    <p className="mt-0.5 text-[10px] text-white/40">
+                    <p className="font-semibold text-foreground">{notif.title}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{notif.message}</p>
+                    <p className="text-[9px] text-muted-foreground/75 mt-1">
                       {notif.timestamp ? new Date(notif.timestamp.toMillis()).toLocaleString() : 'Recent'}
                     </p>
                   </div>
