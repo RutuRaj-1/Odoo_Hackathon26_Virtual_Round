@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* ── Theme: Design Tokens ────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Radius */
+    --radius: 0.5rem;
+
+    /* Light mode */
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 246 80% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 246 80% 60%;
+  }
+
+  .dark {
+    /* Dark mode — sleek slate/indigo palette */
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 246 80% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 96%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 246 80% 65%;
+  }
+}
+
+/* ── Base Styles ─────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
+
+/* ── Utility: CSS variable bridge for hsl() ──────────────────────────────────── */
+@layer utilities {
+  .bg-background   { background-color: hsl(var(--background)); }
+  .bg-foreground   { background-color: hsl(var(--foreground)); }
+  .bg-card         { background-color: hsl(var(--card)); }
+  .bg-primary      { background-color: hsl(var(--primary)); }
+  .bg-secondary    { background-color: hsl(var(--secondary)); }
+  .bg-muted        { background-color: hsl(var(--muted)); }
+  .bg-accent       { background-color: hsl(var(--accent)); }
+  .bg-destructive  { background-color: hsl(var(--destructive)); }
+  .bg-border       { background-color: hsl(var(--border)); }
+
+  .text-foreground        { color: hsl(var(--foreground)); }
+  .text-card-foreground   { color: hsl(var(--card-foreground)); }
+  .text-primary           { color: hsl(var(--primary)); }
+  .text-primary-foreground{ color: hsl(var(--primary-foreground)); }
+  .text-muted-foreground  { color: hsl(var(--muted-foreground)); }
+  .text-accent-foreground { color: hsl(var(--accent-foreground)); }
+  .text-destructive       { color: hsl(var(--destructive)); }
+
+  .border-border  { border-color: hsl(var(--border)); }
+  .ring-primary   { --tw-ring-color: hsl(var(--ring)); }
+
+  .focus\:ring-primary:focus { --tw-ring-color: hsl(var(--ring)); }
+}
