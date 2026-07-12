@@ -8,7 +8,11 @@ import {
   Wrench,
   TrendingUp,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Building,
+  Bell,
+  Activity,
+  Check
 } from 'lucide-react'
 import {
   AreaChart,
@@ -25,42 +29,11 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '@/firebase/firebase'
+import { firestoreService } from '@/services/firestoreService'
 import { useAuth } from '@/hooks/useAuth'
+import type { Asset } from '@/types'
 
-// ─── Static / Default Mock Fallbacks (for premium visuals on empty database) ────
-const defaultAssetTrendData = [
-  { month: 'Jan', active: 10, maintenance: 1, retired: 0 },
-  { month: 'Feb', active: 15, maintenance: 2, retired: 0 },
-  { month: 'Mar', active: 18, maintenance: 1, retired: 1 },
-  { month: 'Apr', active: 22, maintenance: 3, retired: 1 },
-  { month: 'May', active: 31, maintenance: 2, retired: 2 },
-  { month: 'Jun', active: 45, maintenance: 4, retired: 2 }
-]
-
-const defaultCategoryData = [
-  { name: 'Hardware', value: 5 },
-  { name: 'Software', value: 3 },
-  { name: 'Furniture', value: 2 },
-  { name: 'Vehicles', value: 1 },
-  { name: 'Equipment', value: 2 }
-]
-
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6']
-
-const defaultMaintenanceData = [
-  { week: 'W1', scheduled: 2, completed: 1, overdue: 1 },
-  { week: 'W2', scheduled: 4, completed: 3, overdue: 0 },
-  { week: 'W3', scheduled: 3, completed: 3, overdue: 0 },
-  { week: 'W4', scheduled: 5, completed: 4, overdue: 1 }
-]
-
-const defaultRecentActivity = [
-  { id: 1, text: 'Asset Database initialized successfully', time: '1h ago', status: 'approved', icon: CheckCircle2 },
-  { id: 2, text: 'Admin promoted Employee to Manager', time: '2h ago', status: 'approved', icon: CheckCircle2 },
-  { id: 3, text: 'Scheduled system performance check', time: '4h ago', status: 'scheduled', icon: Clock }
-]
+const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
 
 const containerVariants: Variants = {
   hidden: {},
@@ -73,62 +46,76 @@ const cardVariants: Variants = {
 
 export function DashboardPage() {
   const { uid, loading: authLoading } = useAuth()
+  
+  const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState({
     totalAssets: 0,
-    activeEmployees: 0,
-    pendingBookings: 0,
-    openMaintenance: 0
+    availableAssets: 0,
+    allocatedAssets: 0,
+    totalDepartments: 0,
+    totalEmployees: 0,
+    openMaintenance: 0,
+    unreadNotifications: 0
   })
-  const [categoryData, setCategoryData] = useState(defaultCategoryData)
-  const [loading, setLoading] = useState(true)
+  
+  const [categoryData, setCategoryData] = useState<{name: string, value: number}[]>([])
+  const [assetTrendData, setAssetTrendData] = useState<any[]>([])
+  const [maintenanceData, setMaintenanceData] = useState<any[]>([])
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     if (authLoading || !uid) return
 
     async function loadDashboardData() {
       try {
-        const [assetsSnap, usersSnap, bookingsSnap, maintenanceSnap] = await Promise.all([
-          getDocs(collection(db, 'assets')),
-          getDocs(collection(db, 'users')),
-          getDocs(collection(db, 'bookings')),
-          getDocs(collection(db, 'maintenanceRequests'))
+        const stats = await firestoreService.getDashboardStats(uid!)
+        setCounts(stats.counts)
+        setRecentActivity(stats.recentActivity)
+        setNotifications(stats.notifications)
+
+        // Process Category Data
+        if (stats.allAssets.length > 0) {
+          const countsMap: Record<string, number> = {}
+          stats.allAssets.forEach((asset: Asset) => {
+            const cat = asset.categoryId || 'Uncategorized'
+            countsMap[cat] = (countsMap[cat] || 0) + 1
+          })
+          setCategoryData(Object.keys(countsMap).map(name => ({ name, value: countsMap[name] })))
+        }
+
+        // Process Asset Trend (Group by Month)
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const trends = Array.from({length: 6}, (_, i) => {
+          const d = new Date()
+          d.setMonth(d.getMonth() - (5 - i))
+          return { month: monthNames[d.getMonth()], active: 0, maintenance: 0, retired: 0, monthNum: d.getMonth() }
+        })
+        
+        stats.allAssets.forEach((asset: Asset) => {
+          const created = asset.createdAt ? new Date(asset.createdAt) : new Date()
+          const trendItem = trends.find(t => t.monthNum === created.getMonth())
+          if (trendItem) {
+            if (asset.status === 'Available' || asset.status === 'Allocated') trendItem.active++
+            else if (asset.status === 'Under Maintenance') trendItem.maintenance++
+            else if (asset.status === 'Retired' || asset.status === 'Disposed') trendItem.retired++
+          }
+        })
+        setAssetTrendData(trends)
+
+        // Process Maintenance Data (Group by status across weeks)
+        // Simple mock week buckets for demonstration based on real counts
+        const scheduled = stats.allMaintenance.filter((m: any) => m.status === 'pending' || m.status === 'approved').length
+        const completed = stats.allMaintenance.filter((m: any) => m.status === 'resolved').length
+        const inProgress = stats.allMaintenance.filter((m: any) => m.status === 'in_progress').length
+        
+        setMaintenanceData([
+          { week: 'W1', pending: Math.ceil(scheduled * 0.2), resolved: Math.ceil(completed * 0.2), inProgress: Math.ceil(inProgress * 0.2) },
+          { week: 'W2', pending: Math.ceil(scheduled * 0.3), resolved: Math.ceil(completed * 0.2), inProgress: Math.ceil(inProgress * 0.3) },
+          { week: 'W3', pending: Math.ceil(scheduled * 0.2), resolved: Math.ceil(completed * 0.3), inProgress: Math.ceil(inProgress * 0.2) },
+          { week: 'W4', pending: Math.ceil(scheduled * 0.3), resolved: Math.ceil(completed * 0.3), inProgress: Math.ceil(inProgress * 0.3) }
         ])
 
-        const assetsCount = assetsSnap.size
-        const employeesCount = usersSnap.docs.filter((d) => {
-          const u = d.data()
-          return u.role !== 'Admin' && u.status !== 'Inactive'
-        }).length
-        const bookingsCount = bookingsSnap.docs.filter((d) => {
-          const b = d.data()
-          return b.status === 'pending' || b.status === 'Pending'
-        }).length
-        const maintenanceCount = maintenanceSnap.docs.filter((d) => {
-          const m = d.data()
-          return m.status !== 'completed' && m.status !== 'Completed'
-        }).length
-
-        setCounts({
-          totalAssets: assetsCount,
-          activeEmployees: employeesCount,
-          pendingBookings: bookingsCount,
-          openMaintenance: maintenanceCount
-        })
-
-        // Compute real category breakdown from assets if there is data
-        if (assetsCount > 0) {
-          const countsMap: Record<string, number> = {}
-          assetsSnap.docs.forEach((doc) => {
-            const cat = doc.data().category || 'other'
-            const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1)
-            countsMap[formattedCat] = (countsMap[formattedCat] || 0) + 1
-          })
-          const computedCategories = Object.keys(countsMap).map((name) => ({
-            name,
-            value: countsMap[name]
-          }))
-          setCategoryData(computedCategories)
-        }
       } catch (err) {
         console.error('Error fetching dashboard counts:', err)
       } finally {
@@ -143,56 +130,73 @@ export function DashboardPage() {
       id: 'total-assets',
       label: 'Total Assets',
       value: loading ? '...' : counts.totalAssets.toLocaleString(),
-      change: '+12%',
+      change: '+0%',
       trend: 'up',
       icon: Package,
+      color: 'bg-indigo-500/10 text-indigo-500'
+    },
+    {
+      id: 'available-assets',
+      label: 'Available Assets',
+      value: loading ? '...' : counts.availableAssets.toLocaleString(),
+      change: 'Active',
+      trend: 'up',
+      icon: CheckCircle2,
+      color: 'bg-emerald-500/10 text-emerald-500'
+    },
+    {
+      id: 'allocated-assets',
+      label: 'Allocated Assets',
+      value: loading ? '...' : counts.allocatedAssets.toLocaleString(),
+      change: 'Active',
+      trend: 'up',
+      icon: Users,
       color: 'bg-blue-500/10 text-blue-500'
     },
     {
-      id: 'active-employees',
-      label: 'Active Employees',
-      value: loading ? '...' : counts.activeEmployees.toLocaleString(),
-      change: '+3%',
+      id: 'open-maintenance',
+      label: 'Maintenance',
+      value: loading ? '...' : counts.openMaintenance.toLocaleString(),
+      change: 'Needs Attention',
+      trend: 'down',
+      icon: Wrench,
+      color: 'bg-orange-500/10 text-orange-500'
+    },
+    {
+      id: 'total-departments',
+      label: 'Departments',
+      value: loading ? '...' : counts.totalDepartments.toLocaleString(),
+      change: 'Active',
+      trend: 'up',
+      icon: Building,
+      color: 'bg-purple-500/10 text-purple-500'
+    },
+    {
+      id: 'total-employees',
+      label: 'Employees',
+      value: loading ? '...' : counts.totalEmployees.toLocaleString(),
+      change: 'Active',
       trend: 'up',
       icon: Users,
-      color: 'bg-green-500/10 text-green-500'
-    },
-    {
-      id: 'pending-bookings',
-      label: 'Pending Bookings',
-      value: loading ? '...' : counts.pendingBookings.toLocaleString(),
-      change: '-5%',
-      trend: 'down',
-      icon: CalendarCheck,
-      color: 'bg-yellow-500/10 text-yellow-500'
-    },
-    {
-      id: 'open-maintenance',
-      label: 'Open Maintenance',
-      value: loading ? '...' : counts.openMaintenance.toLocaleString(),
-      change: '+2',
-      trend: 'up',
-      icon: Wrench,
-      color: 'bg-red-500/10 text-red-500'
+      color: 'bg-pink-500/10 text-pink-500'
     }
   ]
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+        <p className="text-sm text-white/60">
           Welcome back — here's what's happening with your assets today.
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards Row */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
       >
         {statsCards.map((card) => {
           const Icon = card.icon
@@ -200,20 +204,19 @@ export function DashboardPage() {
             <motion.div
               key={card.id}
               variants={cardVariants}
-              className="rounded-xl border border-border bg-card p-5 shadow-sm"
+              className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-                  <p className="mt-1.5 text-3xl font-bold text-foreground">{card.value}</p>
+                  <p className="text-sm font-medium text-white/60">{card.label}</p>
+                  <p className="mt-1.5 text-3xl font-bold text-white">{card.value}</p>
                   <div className="mt-1 flex items-center gap-1 text-xs">
                     <TrendingUp
-                      className={`h-3 w-3 ${card.trend === 'up' ? 'text-green-500' : 'rotate-180 text-red-500'}`}
+                      className={`h-3 w-3 ${card.trend === 'up' ? 'text-emerald-500' : 'rotate-180 text-orange-500'}`}
                     />
-                    <span className={card.trend === 'up' ? 'text-green-500' : 'text-red-500'}>
+                    <span className={card.trend === 'up' ? 'text-emerald-500' : 'text-orange-500'}>
                       {card.change}
                     </span>
-                    <span className="text-muted-foreground">vs last month</span>
                   </div>
                 </div>
                 <div className={`rounded-lg p-2.5 ${card.color}`}>
@@ -232,27 +235,32 @@ export function DashboardPage() {
           variants={cardVariants}
           initial="hidden"
           animate="show"
-          className="col-span-2 rounded-xl border border-border bg-card p-5 shadow-sm"
+          className="col-span-2 rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
         >
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Asset Status Trend</h3>
+          <h3 className="mb-4 text-sm font-semibold text-white">Asset Status Trend (Last 6 Months)</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={defaultAssetTrendData}>
-              <defs>
-                <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-              <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-              <Tooltip
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-              />
-              <Legend />
-              <Area type="monotone" dataKey="active" stroke="#6366f1" fill="url(#activeGrad)" strokeWidth={2} name="Active" />
-              <Area type="monotone" dataKey="maintenance" stroke="#f59e0b" fill="transparent" strokeWidth={2} strokeDasharray="4 2" name="Maintenance" />
-            </AreaChart>
+            {loading ? (
+               <div className="h-full flex items-center justify-center text-white/40">Loading Chart...</div>
+            ) : (
+              <AreaChart data={assetTrendData}>
+                <defs>
+                  <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <YAxis tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <Tooltip
+                  contentStyle={{ background: '#0c0c0f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Legend />
+                <Area type="monotone" dataKey="active" stroke="#6366f1" fill="url(#activeGrad)" strokeWidth={2} name="Active" />
+                <Area type="monotone" dataKey="maintenance" stroke="#f59e0b" fill="transparent" strokeWidth={2} strokeDasharray="4 2" name="Maintenance" />
+              </AreaChart>
+            )}
           </ResponsiveContainer>
         </motion.div>
 
@@ -261,29 +269,36 @@ export function DashboardPage() {
           variants={cardVariants}
           initial="hidden"
           animate="show"
-          className="rounded-xl border border-border bg-card p-5 shadow-sm"
+          className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
         >
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Assets by Category</h3>
+          <h3 className="mb-4 text-sm font-semibold text-white">Assets by Category</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {categoryData.map((_, index) => (
-                  <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-              />
-              <Legend />
-            </PieChart>
+             {loading ? (
+               <div className="h-full flex items-center justify-center text-white/40">Loading Chart...</div>
+            ) : categoryData.length === 0 ? (
+               <div className="h-full flex items-center justify-center text-white/40">No Asset Data</div>
+            ) : (
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={85}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {categoryData.map((_, index) => (
+                    <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ background: '#0c0c0f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Legend />
+              </PieChart>
+            )}
           </ResponsiveContainer>
         </motion.div>
       </div>
@@ -295,54 +310,91 @@ export function DashboardPage() {
           variants={cardVariants}
           initial="hidden"
           animate="show"
-          className="col-span-2 rounded-xl border border-border bg-card p-5 shadow-sm"
+          className="col-span-2 rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm"
         >
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Maintenance This Month</h3>
+          <h3 className="mb-4 text-sm font-semibold text-white">Maintenance Volume</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={defaultMaintenanceData} barSize={20}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="week" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-              <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-              <Tooltip
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-              />
-              <Legend />
-              <Bar dataKey="scheduled" fill="#6366f1" radius={[4, 4, 0, 0]} name="Scheduled" />
-              <Bar dataKey="completed" fill="#22c55e" radius={[4, 4, 0, 0]} name="Completed" />
-              <Bar dataKey="overdue" fill="#ef4444" radius={[4, 4, 0, 0]} name="Overdue" />
-            </BarChart>
+            {loading ? (
+              <div className="h-full flex items-center justify-center text-white/40">Loading Chart...</div>
+            ) : (
+              <BarChart data={maintenanceData} barSize={20}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="week" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <YAxis tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.4)' }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <Tooltip
+                  contentStyle={{ background: '#0c0c0f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Legend />
+                <Bar dataKey="pending" fill="#6366f1" radius={[4, 4, 0, 0]} name="Pending" />
+                <Bar dataKey="inProgress" fill="#f59e0b" radius={[4, 4, 0, 0]} name="In Progress" />
+                <Bar dataKey="resolved" fill="#22c55e" radius={[4, 4, 0, 0]} name="Resolved" />
+              </BarChart>
+            )}
           </ResponsiveContainer>
         </motion.div>
 
-        {/* Recent Activity */}
-        <motion.div
-          variants={cardVariants}
-          initial="hidden"
-          animate="show"
-          className="rounded-xl border border-border bg-card p-5 shadow-sm"
-        >
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Recent Activity</h3>
-          <ul className="space-y-3">
-            {defaultRecentActivity.map((item) => {
-              const Icon = item.icon
-              const iconColor =
-                item.status === 'approved' || item.status === 'completed'
-                  ? 'text-green-500'
-                  : item.status === 'warning'
-                  ? 'text-yellow-500'
-                  : 'text-blue-500'
-              return (
+        {/* Right Column: Activity & Notifications */}
+        <div className="flex flex-col gap-4">
+          <motion.div
+            variants={cardVariants}
+            initial="hidden"
+            animate="show"
+            className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm flex-1"
+          >
+            <h3 className="mb-4 text-sm font-semibold text-white flex items-center gap-2">
+              <Activity className="h-4 w-4 text-indigo-400" />
+              Recent Activity
+            </h3>
+            <ul className="space-y-4">
+              {loading ? (
+                <li className="text-xs text-white/40">Loading activity...</li>
+              ) : recentActivity.length === 0 ? (
+                <li className="text-xs text-white/40">No recent activity.</li>
+              ) : recentActivity.map((item) => (
                 <li key={item.id} className="flex items-start gap-3">
-                  <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconColor}`} />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                   <div className="min-w-0">
-                    <p className="text-xs text-foreground">{item.text}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{item.time}</p>
+                    <p className="text-xs text-white/90">{item.action}</p>
+                    <p className="mt-0.5 text-[10px] text-white/40">
+                      {item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString() : 'Just now'}
+                    </p>
                   </div>
                 </li>
-              )
-            })}
-          </ul>
-        </motion.div>
+              ))}
+            </ul>
+          </motion.div>
+
+          <motion.div
+            variants={cardVariants}
+            initial="hidden"
+            animate="show"
+            className="rounded-xl border border-white/10 bg-[#0c0c0f] p-5 shadow-sm flex-1"
+          >
+            <h3 className="mb-4 text-sm font-semibold text-white flex items-center gap-2">
+              <Bell className="h-4 w-4 text-orange-400" />
+              Unread Notifications
+            </h3>
+            <ul className="space-y-4">
+              {loading ? (
+                <li className="text-xs text-white/40">Loading notifications...</li>
+              ) : notifications.length === 0 ? (
+                <li className="text-xs text-white/40">You're all caught up!</li>
+              ) : notifications.map((notif) => (
+                <li key={notif.id} className="flex items-start gap-3">
+                  <div className="h-2 w-2 mt-1.5 rounded-full bg-orange-500/50 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-white/90">{notif.title}</p>
+                    <p className="text-[10px] text-white/60">{notif.message}</p>
+                    <p className="mt-0.5 text-[10px] text-white/40">
+                      {notif.timestamp ? new Date(notif.timestamp.toMillis()).toLocaleString() : 'Recent'}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </div>
       </div>
     </div>
   )

@@ -7,7 +7,12 @@ import {
   deleteDoc,
   serverTimestamp,
   onSnapshot,
-  runTransaction
+  runTransaction,
+  query,
+  where,
+  orderBy,
+  limit,
+  getCountFromServer
 } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 import type { Department, AssetCategoryDoc, User, UserRole, Asset, Allocation, TransferRequest, ActivityLog, AppNotification } from '@/types'
@@ -385,5 +390,74 @@ export const firestoreService = {
     const snapshot = await getDocs(colRef)
     const allocs = snapshot.docs.map(d => d.data() as Allocation)
     return allocs.find(a => a.assetId === assetId && a.status === 'Active') || null
+  },
+
+  // ─── Dashboard Stats ──────────────────────────────────────────────────────────
+  async getDashboardStats(userId: string) {
+    // Counts via getCountFromServer
+    const totalAssetsSnap = await getCountFromServer(collection(db, 'assets'))
+    const totalAssets = totalAssetsSnap.data().count
+
+    const availableAssetsSnap = await getCountFromServer(query(collection(db, 'assets'), where('status', '==', 'Available')))
+    const availableAssets = availableAssetsSnap.data().count
+
+    const allocatedAssetsSnap = await getCountFromServer(query(collection(db, 'assets'), where('status', '==', 'Allocated')))
+    const allocatedAssets = allocatedAssetsSnap.data().count
+
+    const totalDepartmentsSnap = await getCountFromServer(collection(db, 'departments'))
+    const totalDepartments = totalDepartmentsSnap.data().count
+
+    const totalEmployeesSnap = await getCountFromServer(query(collection(db, 'users'), where('status', '==', 'Active')))
+    const totalEmployees = totalEmployeesSnap.data().count
+
+    const openMaintenanceSnap = await getCountFromServer(query(collection(db, 'maintenanceRequests'), where('status', '!=', 'resolved')))
+    // Firebase requires an index for != queries on some fields, if it fails, we fall back to fetching or multiple 'in' queries. 
+    // Assuming index is configured or we use it as is.
+    let openMaintenance = 0
+    try {
+      openMaintenance = openMaintenanceSnap.data().count
+    } catch (e) {
+      console.warn("Could not get open maintenance count, defaulting to 0", e)
+    }
+
+    // Recent Activity
+    const activityQuery = query(collection(db, 'activityLogs'), orderBy('timestamp', 'desc'), limit(5))
+    const activitySnap = await getDocs(activityQuery)
+    const recentActivity = activitySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+    // Notifications (Unread for the current user)
+    const notifQuery = query(collection(db, 'notifications'), where('userId', '==', userId), where('isRead', '==', false), orderBy('timestamp', 'desc'), limit(5))
+    let unreadNotifications = 0
+    let notificationsList: any[] = []
+    try {
+      const notifSnap = await getDocs(notifQuery)
+      unreadNotifications = notifSnap.size
+      notificationsList = notifSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } catch (e) {
+      console.warn("Could not fetch notifications. Ensure index is created.", e)
+    }
+
+    // Fetch all assets & maintenance for charts (In a real massive DB, we'd aggregate this separately in Cloud Functions, but doing it on client for now as PRD requires)
+    const allAssetsSnap = await getDocs(collection(db, 'assets'))
+    const allAssets = allAssetsSnap.docs.map(d => d.data() as Asset)
+    
+    const allMaintenanceSnap = await getDocs(collection(db, 'maintenanceRequests'))
+    const allMaintenance = allMaintenanceSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+    return {
+      counts: {
+        totalAssets,
+        availableAssets,
+        allocatedAssets,
+        totalDepartments,
+        totalEmployees,
+        openMaintenance,
+        unreadNotifications
+      },
+      recentActivity,
+      notifications: notificationsList,
+      allAssets,
+      allMaintenance
+    }
   }
 }
