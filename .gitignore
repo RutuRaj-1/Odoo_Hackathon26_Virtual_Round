@@ -1,3 +1,4 @@
 .env
 venv/
 venv3
+node_modules/

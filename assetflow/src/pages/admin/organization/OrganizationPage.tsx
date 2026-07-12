@@ -31,9 +31,9 @@ export function OrganizationPage() {
   const [loading, setLoading] = useState(true)
 
   // Modals States
-  const [deptModal, setDeptModal] = useState<{ open: boolean; editId?: string; data: Omit<Department, 'id'> }>({
+  const [deptModal, setDeptModal] = useState<{ open: boolean; editId?: string; data: Omit<Department, 'departmentId' | 'createdAt' | 'updatedAt'> }>({
     open: false,
-    data: { name: '', code: '', parentDepartmentId: null, departmentHeadId: null, status: 'Active' }
+    data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' }
   })
   
   const [catModal, setCatModal] = useState<{ open: boolean; editId?: string; data: Omit<AssetCategoryDoc, 'id'> }>({
@@ -49,6 +49,7 @@ export function OrganizationPage() {
   })
 
   // Directory Search/Filters/Pagination States
+  const [deptSearchTerm, setDeptSearchTerm] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -60,12 +61,10 @@ export function OrganizationPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [deptList, catList, empList] = await Promise.all([
-        firestoreService.getDepartments(),
+      const [catList, empList] = await Promise.all([
         firestoreService.getCategories(),
         firestoreService.getEmployees()
       ])
-      setDepartments(deptList)
       setCategories(catList)
       setEmployees(empList)
     } catch (error: any) {
@@ -81,12 +80,16 @@ export function OrganizationPage() {
 
   useEffect(() => {
     loadData()
+    const unsubscribe = firestoreService.subscribeToDepartments((data) => {
+      setDepartments(data)
+    })
+    return () => unsubscribe()
   }, [])
 
   // ─── Department Operations ─────────────────────────────────────────────────────
   const handleDeptSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!deptModal.data.name.trim() || !deptModal.data.code.trim()) {
+    if (!deptModal.data.name.trim() || !deptModal.data.departmentCode.trim()) {
       toast({ variant: 'error', title: 'Validation Error', description: 'Name and Code are required.' })
       return
     }
@@ -99,7 +102,7 @@ export function OrganizationPage() {
         await firestoreService.createDepartment(deptModal.data)
         toast({ variant: 'success', title: 'Department Created', description: 'New department added successfully.' })
       }
-      setDeptModal({ open: false, data: { name: '', code: '', parentDepartmentId: null, departmentHeadId: null, status: 'Active' } })
+      setDeptModal({ open: false, data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' } })
       loadData()
     } catch (error: any) {
       toast({ variant: 'error', title: 'Operation Failed', description: error.message })
@@ -175,6 +178,11 @@ export function OrganizationPage() {
   }
 
   // Directory Filtering
+  const filteredDepartments = departments.filter((dept) => {
+    return dept.name.toLowerCase().includes(deptSearchTerm.toLowerCase()) ||
+           dept.departmentCode.toLowerCase().includes(deptSearchTerm.toLowerCase())
+  })
+
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
       emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,7 +202,7 @@ export function OrganizationPage() {
 
   const getDepartmentName = (deptId?: string | null) => {
     if (!deptId) return 'Unassigned'
-    return departments.find((d) => d.id === deptId)?.name || 'Unassigned'
+    return departments.find((d) => d.departmentId === deptId)?.name || 'Unassigned'
   }
 
   const getUserName = (userId?: string | null) => {
@@ -240,13 +248,26 @@ export function OrganizationPage() {
               onClick={() =>
                 setDeptModal({
                   open: true,
-                  data: { name: '', code: '', parentDepartmentId: null, departmentHeadId: null, status: 'Active' }
+                  data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' }
                 })
               }
               className="gap-2"
             >
               <Plus className="h-4 w-4" /> Add Department
             </Button>
+          </div>
+
+          <div className="w-full max-w-sm">
+            <label className="text-xs text-white/45 mb-1.5 block">Search department</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+              <Input
+                placeholder="Search by name or code..."
+                value={deptSearchTerm}
+                onChange={(e) => setDeptSearchTerm(e.target.value)}
+                className="pl-9 bg-[#111115]"
+              />
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-xl border border-white/8 bg-[#0c0c0f]">
@@ -262,19 +283,19 @@ export function OrganizationPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {departments.length === 0 ? (
+                {filteredDepartments.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-white/30">
-                      No departments registered yet.
+                      No departments matching the criteria.
                     </td>
                   </tr>
                 ) : (
-                  departments.map((dept) => (
-                    <tr key={dept.id} className="hover:bg-white/1.5 transition-colors">
-                      <td className="px-6 py-4 font-mono font-medium text-white/90">{dept.code}</td>
+                  filteredDepartments.map((dept) => (
+                    <tr key={dept.departmentId} className="hover:bg-white/1.5 transition-colors">
+                      <td className="px-6 py-4 font-mono font-medium text-white/90">{dept.departmentCode}</td>
                       <td className="px-6 py-4 font-medium text-white/90">{dept.name}</td>
-                      <td className="px-6 py-4">{getDepartmentName(dept.parentDepartmentId)}</td>
-                      <td className="px-6 py-4">{getUserName(dept.departmentHeadId)}</td>
+                      <td className="px-6 py-4">{getDepartmentName(dept.parentDepartment)}</td>
+                      <td className="px-6 py-4">{getUserName(dept.headId)}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -289,14 +310,14 @@ export function OrganizationPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => setDeptModal({ open: true, editId: dept.id, data: { ...dept } })}
+                            onClick={() => setDeptModal({ open: true, editId: dept.departmentId, data: { ...dept } })}
                             className="p-1 text-white/40 hover:text-white/80 transition-colors"
                             title="Edit"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDeptDelete(dept.id)}
+                            onClick={() => handleDeptDelete(dept.departmentId)}
                             className="p-1 text-white/40 hover:text-red-400 transition-colors"
                             title="Delete"
                           >
@@ -422,7 +443,7 @@ export function OrganizationPage() {
               >
                 <option value="">All Departments</option>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
+                  <option key={d.departmentId} value={d.departmentId}>
                     {d.name}
                   </option>
                 ))}
@@ -584,7 +605,7 @@ export function OrganizationPage() {
                 {deptModal.editId ? 'Edit Department' : 'Create Department'}
               </h3>
               <button
-                onClick={() => setDeptModal({ open: false, data: { name: '', code: '', parentDepartmentId: null, departmentHeadId: null, status: 'Active' } })}
+                onClick={() => setDeptModal({ open: false, data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' } })}
                 className="text-white/40 hover:text-white/80"
               >
                 <X className="h-5 w-5" />
@@ -604,8 +625,8 @@ export function OrganizationPage() {
               <FormField id="dept-code" label="Department Code" required>
                 <Input
                   id="dept-code"
-                  value={deptModal.data.code}
-                  onChange={(e) => setDeptModal((m) => ({ ...m, data: { ...m.data, code: e.target.value } }))}
+                  value={deptModal.data.departmentCode}
+                  onChange={(e) => setDeptModal((m) => ({ ...m, data: { ...m.data, departmentCode: e.target.value } }))}
                   placeholder="e.g. ENG"
                 />
               </FormField>
@@ -613,20 +634,20 @@ export function OrganizationPage() {
               <div>
                 <label className="text-xs text-white/50 mb-1.5 block">Parent Department</label>
                 <select
-                  value={deptModal.data.parentDepartmentId || ''}
+                  value={deptModal.data.parentDepartment || ''}
                   onChange={(e) =>
                     setDeptModal((m) => ({
                       ...m,
-                      data: { ...m.data, parentDepartmentId: e.target.value || null }
+                      data: { ...m.data, parentDepartment: e.target.value || null }
                     }))
                   }
                   className="w-full h-10 rounded-lg border border-white/8 bg-[#111115] px-3 py-1 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">None (Top-Level)</option>
                   {departments
-                    .filter((d) => d.id !== deptModal.editId) // Prevents circular nesting
+                    .filter((d) => d.departmentId !== deptModal.editId) // Prevents circular nesting
                     .map((d) => (
-                      <option key={d.id} value={d.id}>
+                      <option key={d.departmentId} value={d.departmentId}>
                         {d.name}
                       </option>
                     ))}
@@ -636,11 +657,11 @@ export function OrganizationPage() {
               <div>
                 <label className="text-xs text-white/50 mb-1.5 block">Department Head</label>
                 <select
-                  value={deptModal.data.departmentHeadId || ''}
+                  value={deptModal.data.headId || ''}
                   onChange={(e) =>
                     setDeptModal((m) => ({
                       ...m,
-                      data: { ...m.data, departmentHeadId: e.target.value || null }
+                      data: { ...m.data, headId: e.target.value || null }
                     }))
                   }
                   className="w-full h-10 rounded-lg border border-white/8 bg-[#111115] px-3 py-1 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -676,7 +697,7 @@ export function OrganizationPage() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setDeptModal({ open: false, data: { name: '', code: '', parentDepartmentId: null, departmentHeadId: null, status: 'Active' } })}
+                  onClick={() => setDeptModal({ open: false, data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' } })}
                 >
                   Cancel
                 </Button>

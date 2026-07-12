@@ -23,11 +23,11 @@ export interface User {
 export type UserRole = 'Admin' | 'Asset Manager' | 'Department Head' | 'Employee' | 'admin' | 'manager' | 'employee' | 'viewer'
 
 export interface Department {
-  id: string
+  departmentId: string
   name: string
-  code: string
-  parentDepartmentId: string | null
-  departmentHeadId: string | null
+  departmentCode: string
+  parentDepartment: string | null
+  headId: string | null
   status: 'Active' | 'Inactive'
   createdAt?: any
   updatedAt?: any

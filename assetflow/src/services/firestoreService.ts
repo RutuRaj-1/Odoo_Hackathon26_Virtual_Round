@@ -5,28 +5,46 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
+  onSnapshot
 } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 import type { Department, AssetCategoryDoc, User, UserRole } from '@/types'
 
 // ─── Department Management CRUD ───────────────────────────────────────────────
 export const firestoreService = {
-  // Get all departments
+  // Subscribe to departments for real-time updates
+  subscribeToDepartments(callback: (departments: Department[]) => void): () => void {
+    const colRef = collection(db, 'departments')
+    return onSnapshot(colRef, (snapshot) => {
+      const departments = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data()
+        return {
+          departmentId: docSnap.id,
+          ...data
+        } as Department
+      })
+      callback(departments)
+    }, (error) => {
+      console.error('Error subscribing to departments:', error)
+    })
+  },
+
+  // Get all departments (one-time fetch)
   async getDepartments(): Promise<Department[]> {
     const colRef = collection(db, 'departments')
     const snapshot = await getDocs(colRef)
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
+    return snapshot.docs.map((docSnap) => ({
+      departmentId: docSnap.id,
+      ...docSnap.data()
     })) as Department[]
   },
 
   // Create department
-  async createDepartment(data: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  async createDepartment(data: Omit<Department, 'departmentId' | 'createdAt' | 'updatedAt'>): Promise<string> {
     const docRef = doc(collection(db, 'departments'))
     const newDept: Department = {
-      id: docRef.id,
+      departmentId: docRef.id,
       ...data,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -36,8 +54,8 @@ export const firestoreService = {
   },
 
   // Update department
-  async updateDepartment(id: string, data: Partial<Omit<Department, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> {
-    const docRef = doc(db, 'departments', id)
+  async updateDepartment(departmentId: string, data: Partial<Omit<Department, 'departmentId' | 'createdAt' | 'updatedAt'>>): Promise<void> {
+    const docRef = doc(db, 'departments', departmentId)
     await updateDoc(docRef, {
       ...data,
       updatedAt: serverTimestamp()
@@ -45,8 +63,8 @@ export const firestoreService = {
   },
 
   // Delete department
-  async deleteDepartment(id: string): Promise<void> {
-    const docRef = doc(db, 'departments', id)
+  async deleteDepartment(departmentId: string): Promise<void> {
+    const docRef = doc(db, 'departments', departmentId)
     await deleteDoc(docRef)
   },
 
