@@ -1,4 +1,5 @@
-# AssetFlow ── Enterprise Asset & Resource Management System
+# **AssetFlow : Enterprise Asset & Resource Management System**
+
 ### Odoo Hackathon 2026 (Virtual Round Entry)
 
 ---
@@ -21,7 +22,7 @@ In fast-scaling enterprises, asset management often becomes disjointed, leading 
 ## Solution
 AssetFlow provides a comprehensive, conflict-aware solution:
 *   **Collision Alert System**: Prevents double-allocation of equipment. If an asset is already in use, the system blocks allocation and forces a transfer request workflow.
-*   **Live Maintenance Kanban Workflow**: Manages technical tickets from pending reviews to resolved status. Transitioning a ticket automatically updates the asset's system status.
+*   **Live Maintenance Workflow**: Manages technical tickets from pending reviews to resolved status. Transitioning a ticket automatically updates the asset's system status.
 *   **Real-time Audit Cycles**: Starts dedicated checks per department, allowing auditors to mark inventory as Verified, Missing, or Damaged.
 *   **Organization Directory**: Administrative console to manage departments, assign department heads, and adjust employee roles and access levels.
 *   **Analytical Dashboards**: Aggregates live Firestore statistics, computing category distributions, department utilization, and maintenance expenses with exportable reporting.
@@ -38,53 +39,24 @@ AssetFlow provides a comprehensive, conflict-aware solution:
 *   **CSV Data Exporting**: Download detailed analytical logs for department audits with a single click.
 
 ---
+![dashboard](assets/dashboard.jpeg)
+
+---
+
+![analytics](assets/analytics.jpeg)
+
+---
+
+![sign in page](asstes/signin.jpeg)
+
+---
 
 ## Tech Stack
 *   **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, Framer Motion
 *   **State & Database**: Firebase Authentication (Email/Password, Google Sign-in, Phone OTP), Cloud Firestore
 *   **Component Library**: Radix UI (primitives), Lucide React (icons)
 *   **Data Visualization**: Recharts
-
----
-
-## Architecture
-AssetFlow uses a decoupled layout hierarchy connecting page triggers to Firestore service adapters:
-
-```mermaid
-graph TD
-    subgraph View Layer (React components)
-        Dash[Dashboard Page]
-        Alloc[Allocation & Transfer]
-        Maint[Kanban Maintenance]
-        Audit[Audit Cycles]
-        Reports[Analytics Dashboard]
-    end
-
-    subgraph Service Layer (TypeScript)
-        AS[assetService]
-        BS[bookingService]
-        MS[maintenanceService]
-        ES[employeeService]
-    end
-
-    subgraph Database Layer (Cloud Firestore)
-        F_Assets[(/assets)]
-        F_Users[(/users)]
-        F_Bookings[(/bookings)]
-        F_Maint[(/maintenanceRequests)]
-    end
-
-    Dash -->|Reads aggregate counts| F_Assets & F_Users & F_Bookings
-    Alloc -->|Collision validation| AS
-    Maint -->|State changes| MS
-    Audit -->|Flags status| AS
-    Reports -->|Reads analytics| F_Assets & F_Maint
-
-    AS -->|CRUD| F_Assets
-    BS -->|CRUD| F_Bookings
-    MS -->|CRUD| F_Maint
-    ES -->|CRUD| F_Users
-```
+*   **LLM summariation** : Ollama (lama3.1:8b)
 
 ---
 
@@ -134,6 +106,24 @@ Screenshots of the implemented POC layouts are saved in the project's artifact d
 ## Team
 *   **Hackathon Entry ID**: RutuRaj-1
 *   **Project Title**: AssetFlow ERP System
+
+---
+
+## Team Members
+
+1. Ruturaj Bhome (leader)
+2. Akhilesh Dhumal
+3. Yash Chillal
+
+---
+
+## Aknowledgement
+
+1. Odoo
+2. Google
+3. Ollama
+4. React
+5. Vite
 
 ---
 
