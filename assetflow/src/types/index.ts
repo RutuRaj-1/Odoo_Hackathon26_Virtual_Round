@@ -34,13 +34,12 @@ export interface Department {
 }
 
 export interface AssetCategoryDoc {
-  id: string
+  categoryId: string
   name: string
   description: string
   warrantyPeriod: string | number
   status: 'Active' | 'Inactive'
   createdAt?: any
-  updatedAt?: any
 }
 
 export interface AuthState {

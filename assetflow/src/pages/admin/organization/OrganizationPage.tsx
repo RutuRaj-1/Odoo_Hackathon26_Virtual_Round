@@ -36,7 +36,7 @@ export function OrganizationPage() {
     data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' }
   })
   
-  const [catModal, setCatModal] = useState<{ open: boolean; editId?: string; data: Omit<AssetCategoryDoc, 'id'> }>({
+  const [catModal, setCatModal] = useState<{ open: boolean; editId?: string; data: Omit<AssetCategoryDoc, 'categoryId' | 'createdAt'> }>({
     open: false,
     data: { name: '', description: '', warrantyPeriod: '', status: 'Active' }
   })
@@ -61,11 +61,9 @@ export function OrganizationPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [catList, empList] = await Promise.all([
-        firestoreService.getCategories(),
+      const [empList] = await Promise.all([
         firestoreService.getEmployees()
       ])
-      setCategories(catList)
       setEmployees(empList)
     } catch (error: any) {
       toast({
@@ -80,10 +78,16 @@ export function OrganizationPage() {
 
   useEffect(() => {
     loadData()
-    const unsubscribe = firestoreService.subscribeToDepartments((data) => {
+    const unsubscribeDept = firestoreService.subscribeToDepartments((data) => {
       setDepartments(data)
     })
-    return () => unsubscribe()
+    const unsubscribeCat = firestoreService.subscribeToCategories((data) => {
+      setCategories(data)
+    })
+    return () => {
+      unsubscribeDept()
+      unsubscribeCat()
+    }
   }, [])
 
   // ─── Department Operations ─────────────────────────────────────────────────────
@@ -103,7 +107,6 @@ export function OrganizationPage() {
         toast({ variant: 'success', title: 'Department Created', description: 'New department added successfully.' })
       }
       setDeptModal({ open: false, data: { name: '', departmentCode: '', parentDepartment: null, headId: null, status: 'Active' } })
-      loadData()
     } catch (error: any) {
       toast({ variant: 'error', title: 'Operation Failed', description: error.message })
     }
@@ -114,7 +117,6 @@ export function OrganizationPage() {
     try {
       await firestoreService.deleteDepartment(id)
       toast({ variant: 'success', title: 'Department Deleted', description: 'Deleted department successfully.' })
-      loadData()
     } catch (error: any) {
       toast({ variant: 'error', title: 'Delete Failed', description: error.message })
     }
@@ -137,7 +139,6 @@ export function OrganizationPage() {
         toast({ variant: 'success', title: 'Category Created', description: 'New asset category added successfully.' })
       }
       setCatModal({ open: false, data: { name: '', description: '', warrantyPeriod: '', status: 'Active' } })
-      loadData()
     } catch (error: any) {
       toast({ variant: 'error', title: 'Operation Failed', description: error.message })
     }
@@ -148,7 +149,6 @@ export function OrganizationPage() {
     try {
       await firestoreService.deleteCategory(id)
       toast({ variant: 'success', title: 'Category Deleted', description: 'Deleted category successfully.' })
-      loadData()
     } catch (error: any) {
       toast({ variant: 'error', title: 'Delete Failed', description: error.message })
     }
@@ -370,7 +370,7 @@ export function OrganizationPage() {
                   </tr>
                 ) : (
                   categories.map((cat) => (
-                    <tr key={cat.id} className="hover:bg-white/1.5 transition-colors">
+                    <tr key={cat.categoryId} className="hover:bg-white/1.5 transition-colors">
                       <td className="px-6 py-4 font-semibold text-white/90">{cat.name}</td>
                       <td className="px-6 py-4 max-w-xs truncate">{cat.description || '-'}</td>
                       <td className="px-6 py-4">{cat.warrantyPeriod} Months</td>
@@ -388,14 +388,14 @@ export function OrganizationPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => setCatModal({ open: true, editId: cat.id, data: { ...cat } })}
+                            onClick={() => setCatModal({ open: true, editId: cat.categoryId, data: { ...cat } })}
                             className="p-1 text-white/40 hover:text-white/80 transition-colors"
                             title="Edit"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleCatDelete(cat.id)}
+                            onClick={() => handleCatDelete(cat.categoryId)}
                             className="p-1 text-white/40 hover:text-red-400 transition-colors"
                             title="Delete"
                           >

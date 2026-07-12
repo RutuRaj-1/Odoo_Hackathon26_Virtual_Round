@@ -69,41 +69,70 @@ export const firestoreService = {
   },
 
   // ─── Asset Category Management CRUD ───────────────────────────────────────────
-  // Get all categories
+  // Subscribe to categories for real-time updates
+  subscribeToCategories(callback: (categories: AssetCategoryDoc[]) => void): () => void {
+    const colRef = collection(db, 'assetCategories')
+    return onSnapshot(colRef, (snapshot) => {
+      const categories = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data()
+        return {
+          categoryId: docSnap.id,
+          ...data
+        } as AssetCategoryDoc
+      })
+      callback(categories)
+    }, (error) => {
+      console.error('Error subscribing to categories:', error)
+    })
+  },
+
+  // Get all categories (one-time fetch)
   async getCategories(): Promise<AssetCategoryDoc[]> {
     const colRef = collection(db, 'assetCategories')
     const snapshot = await getDocs(colRef)
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
+    return snapshot.docs.map((docSnap) => ({
+      categoryId: docSnap.id,
+      ...docSnap.data()
     })) as AssetCategoryDoc[]
   },
 
   // Create category
-  async createCategory(data: Omit<AssetCategoryDoc, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  async createCategory(data: Omit<AssetCategoryDoc, 'categoryId' | 'createdAt'>): Promise<string> {
+    // Duplicate prevention
+    const existingCats = await this.getCategories()
+    if (existingCats.some(cat => cat.name.toLowerCase() === data.name.trim().toLowerCase())) {
+      throw new Error(`A category with the name "${data.name}" already exists.`)
+    }
+
     const docRef = doc(collection(db, 'assetCategories'))
     const newCat: AssetCategoryDoc = {
-      id: docRef.id,
+      categoryId: docRef.id,
       ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt: serverTimestamp()
     }
     await setDoc(docRef, newCat)
     return docRef.id
   },
 
   // Update category
-  async updateCategory(id: string, data: Partial<Omit<AssetCategoryDoc, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> {
-    const docRef = doc(db, 'assetCategories', id)
+  async updateCategory(categoryId: string, data: Partial<Omit<AssetCategoryDoc, 'categoryId' | 'createdAt'>>): Promise<void> {
+    // Duplicate prevention if name is being changed
+    if (data.name) {
+      const existingCats = await this.getCategories()
+      if (existingCats.some(cat => cat.categoryId !== categoryId && cat.name.toLowerCase() === data.name!.trim().toLowerCase())) {
+        throw new Error(`A category with the name "${data.name}" already exists.`)
+      }
+    }
+
+    const docRef = doc(db, 'assetCategories', categoryId)
     await updateDoc(docRef, {
-      ...data,
-      updatedAt: serverTimestamp()
+      ...data
     })
   },
 
   // Delete category
-  async deleteCategory(id: string): Promise<void> {
-    const docRef = doc(db, 'assetCategories', id)
+  async deleteCategory(categoryId: string): Promise<void> {
+    const docRef = doc(db, 'assetCategories', categoryId)
     await deleteDoc(docRef)
   },
 
