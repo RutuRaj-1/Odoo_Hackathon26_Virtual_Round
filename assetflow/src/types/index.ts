@@ -14,7 +14,7 @@ export interface User extends BaseEntity {
   department?: string
 }
 
-export type UserRole = 'admin' | 'manager' | 'employee' | 'viewer'
+export type UserRole = 'admin' | 'manager' | 'employee' | 'viewer' | 'Admin' | 'Asset Manager' | 'Department Head' | 'Employee'
 
 export interface AuthState {
   user: User | null

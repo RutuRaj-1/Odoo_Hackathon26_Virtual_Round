@@ -12,7 +12,7 @@ import { FormField } from '@/components/ui/form-field'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/toast'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@/services/authService'
 import { ROUTES } from '@/constants'
 

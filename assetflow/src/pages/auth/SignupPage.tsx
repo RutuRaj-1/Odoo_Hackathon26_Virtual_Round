@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/form-field'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/toast'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@/services/authService'
 import { ROUTES } from '@/constants'
 

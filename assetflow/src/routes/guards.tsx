@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/constants'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 

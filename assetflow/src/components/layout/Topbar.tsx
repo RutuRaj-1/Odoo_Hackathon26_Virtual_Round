@@ -1,5 +1,5 @@
 import { Bell, Search, Moon, Sun, LogOut } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getInitials } from '@/utils'
 

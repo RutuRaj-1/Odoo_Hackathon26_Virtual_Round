@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import type { Variants } from 'framer-motion'
 import {
   Package,
   Users,
@@ -99,11 +100,11 @@ const recentActivity = [
   { id: 5, type: 'maintenance', text: 'Dell Monitor #M-0231 repair completed', time: '3h ago', status: 'completed', icon: CheckCircle },
 ]
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.07 } },
 }
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
 }
