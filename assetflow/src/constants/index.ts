@@ -7,6 +7,7 @@ export const APP_DESCRIPTION = 'Enterprise Asset & Resource Management'
 export const ROUTES = {
   // Auth
   LOGIN: '/login',
+  SIGNUP: '/signup',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
 

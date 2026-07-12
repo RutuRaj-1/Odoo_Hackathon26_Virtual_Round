@@ -7,6 +7,7 @@ import { ROUTES } from '@/constants'
 // ─── Auth Pages ────────────────────────────────────────────────────────────────
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { SignupPage } from '@/pages/auth/SignupPage'
 
 // ─── App Pages ─────────────────────────────────────────────────────────────────
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
         element: <AuthLayout />,
         children: [
           { path: ROUTES.LOGIN, element: <LoginPage /> },
+          { path: ROUTES.SIGNUP, element: <SignupPage /> },
           { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
         ],
       },
