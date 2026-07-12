@@ -46,6 +46,9 @@ export const ROUTES = {
   // Reports & Analytics
   REPORTS: '/reports',
 
+  // Copilot
+  COPILOT: '/copilot',
+
   // Settings
   SETTINGS: '/settings',
   PROFILE: '/profile',

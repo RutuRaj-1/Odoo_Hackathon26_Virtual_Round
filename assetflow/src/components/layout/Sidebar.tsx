@@ -14,6 +14,7 @@ import {
   ClipboardList,
   BarChart3,
   Bell,
+  Sparkles
 } from 'lucide-react'
 import { cn } from '@/utils'
 import { ROUTES } from '@/constants'
@@ -85,6 +86,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       label: 'Reports',
       href: ROUTES.REPORTS,
       icon: BarChart3,
+    },
+    {
+      label: 'AssetFlow Copilot',
+      href: ROUTES.COPILOT,
+      icon: Sparkles,
     },
   ]
 

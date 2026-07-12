@@ -39,6 +39,7 @@ import { AllocationTransferPage } from '@/pages/allocation/AllocationTransferPag
 import { AuditPage } from '@/pages/audit/AuditPage'
 import { ActivityLogsPage } from '@/pages/activity/ActivityLogsPage'
 import { ReportsPage } from '@/pages/reports/ReportsPage'
+import { CopilotPage } from '@/pages/copilot/CopilotPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 
@@ -163,6 +164,9 @@ export const router = createBrowserRouter([
 
           // Reports & Analytics
           { path: ROUTES.REPORTS, element: <ReportsPage /> },
+
+          // Copilot
+          { path: ROUTES.COPILOT, element: <CopilotPage /> },
 
           // Settings
           { path: ROUTES.SETTINGS, element: <SettingsPage /> },
