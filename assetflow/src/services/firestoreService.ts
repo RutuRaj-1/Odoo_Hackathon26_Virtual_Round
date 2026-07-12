@@ -9,7 +9,7 @@ import {
   onSnapshot
 } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
-import type { Department, AssetCategoryDoc, User, UserRole } from '@/types'
+import type { Department, AssetCategoryDoc, User, UserRole, Asset } from '@/types'
 
 // ─── Department Management CRUD ───────────────────────────────────────────────
 export const firestoreService = {
@@ -190,5 +190,66 @@ export const firestoreService = {
     await updateDoc(docRef, {
       ...updates
     })
+  },
+
+  // ─── Asset Management CRUD ────────────────────────────────────────────────────
+  subscribeToAssets(callback: (assets: Asset[]) => void): () => void {
+    const colRef = collection(db, 'assets')
+    return onSnapshot(colRef, (snapshot) => {
+      const assets = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data()
+        return {
+          assetId: docSnap.id,
+          ...data
+        } as Asset
+      })
+      callback(assets)
+    }, (error) => {
+      console.error('Error subscribing to assets:', error)
+    })
+  },
+
+  async getAssets(): Promise<Asset[]> {
+    const colRef = collection(db, 'assets')
+    const snapshot = await getDocs(colRef)
+    return snapshot.docs.map((docSnap) => ({
+      assetId: docSnap.id,
+      ...docSnap.data()
+    })) as Asset[]
+  },
+
+  async generateNextAssetTag(): Promise<string> {
+    const assets = await this.getAssets()
+    if (assets.length === 0) return 'AF-0001'
+    const tagNumbers = assets
+      .map(a => a.assetTag)
+      .filter(t => t && t.startsWith('AF-'))
+      .map(t => parseInt(t.replace('AF-', ''), 10))
+      .filter(n => !isNaN(n))
+    
+    if (tagNumbers.length === 0) return 'AF-0001'
+    const maxTag = Math.max(...tagNumbers)
+    return `AF-${String(maxTag + 1).padStart(4, '0')}`
+  },
+
+  async createAsset(data: Omit<Asset, 'assetId' | 'createdAt'>): Promise<string> {
+    const docRef = doc(collection(db, 'assets'))
+    const newAsset: Asset = {
+      assetId: docRef.id,
+      ...data,
+      createdAt: serverTimestamp()
+    }
+    await setDoc(docRef, newAsset)
+    return docRef.id
+  },
+
+  async updateAsset(assetId: string, data: Partial<Omit<Asset, 'assetId' | 'createdAt'>>): Promise<void> {
+    const docRef = doc(db, 'assets', assetId)
+    await updateDoc(docRef, { ...data })
+  },
+
+  async deleteAsset(assetId: string): Promise<void> {
+    const docRef = doc(db, 'assets', assetId)
+    await deleteDoc(docRef)
   }
 }

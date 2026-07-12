@@ -45,36 +45,24 @@ export interface AuthState {
 }
 
 // ─── Assets ────────────────────────────────────────────────────────────────────
-export type AssetStatus = 'active' | 'in_use' | 'maintenance' | 'retired' | 'missing'
-export type AssetCategory =
-  | 'hardware'
-  | 'software'
-  | 'furniture'
-  | 'vehicle'
-  | 'equipment'
-  | 'other'
+export type AssetStatus = 'Available' | 'Allocated' | 'Reserved' | 'Under Maintenance' | 'Lost' | 'Retired' | 'Disposed'
 export type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor'
 
-export interface Asset extends BaseEntity {
+export interface Asset {
+  assetId: string
   assetTag: string
-  name: string
-  category: AssetCategory
+  assetName: string
+  serialNumber: string
+  categoryId: string
+  departmentId: string | null
   status: AssetStatus
+  location: string
   condition: AssetCondition
-  serialNumber?: string
-  purchaseDate?: string
-  purchasePrice?: number
-  currentValue?: number
-  location?: string
-  assignedTo?: string
-  assignedToUser?: User
-  department?: string
-  description?: string
-  imageUrl?: string
-  warrantyExpiry?: string
-  vendor?: string
-  invoiceNumber?: string
-  maintenanceSchedule?: MaintenanceSchedule
+  purchaseDate: string
+  purchaseCost: number
+  assignedTo: string | null
+  createdBy: string
+  createdAt?: any
 }
 
 // ─── Employees ─────────────────────────────────────────────────────────────────
