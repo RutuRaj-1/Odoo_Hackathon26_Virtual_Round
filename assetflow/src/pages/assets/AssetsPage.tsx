@@ -13,18 +13,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { assetService } from '@/services/assetService'
-import type { Asset, AssetStatus } from '@/types'
+import { firestoreService } from '@/services/firestoreService'
+import type { Asset, AssetStatus, Department } from '@/types'
 import { ROUTES } from '@/constants'
 
 export function AssetsPage() {
   const { toast } = useToast()
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
+  const [departments, setDepartments] = useState<Department[]>([])
   
   // Search & Filters State
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string>('')
   const [status, setStatus] = useState<string>('')
+  const [departmentFilter, setDepartmentFilter] = useState<string>('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -40,9 +43,13 @@ export function AssetsPage() {
         page,
         pageSize
       })
-      setAssets(res.data)
-      setTotal(res.total)
-      setTotalPages(res.totalPages)
+      // Apply department filter client-side
+      const filtered = departmentFilter
+        ? res.data.filter(a => a.departmentId === departmentFilter)
+        : res.data
+      setAssets(filtered)
+      setTotal(departmentFilter ? filtered.length : res.total)
+      setTotalPages(departmentFilter ? Math.ceil(filtered.length / pageSize) : res.totalPages)
     } catch (err: any) {
       toast({
         variant: 'error',
@@ -55,8 +62,12 @@ export function AssetsPage() {
   }
 
   useEffect(() => {
+    firestoreService.getDepartments().then(setDepartments).catch(() => {})
+  }, [])
+
+  useEffect(() => {
     loadAssets()
-  }, [search, category, status, page])
+  }, [search, category, status, departmentFilter, page])
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this asset?')) return
@@ -95,7 +106,7 @@ export function AssetsPage() {
       </div>
 
       {/* Filter Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 items-end">
         <div className="md:col-span-2">
           <label className="text-xs text-white/45 mb-1.5 block">Search asset</label>
           <div className="relative">
@@ -150,6 +161,23 @@ export function AssetsPage() {
             <option value="Lost">Lost</option>
             <option value="Retired">Retired</option>
             <option value="Disposed">Disposed</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/45 mb-1.5 block">Department</label>
+          <select
+            value={departmentFilter}
+            onChange={(e) => {
+              setDepartmentFilter(e.target.value)
+              setPage(1)
+            }}
+            className="w-full h-10 rounded-lg border border-white/8 bg-[#111115] px-3 py-1 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">All Departments</option>
+            {departments.map(d => (
+              <option key={d.departmentId} value={d.departmentId}>{d.name}</option>
+            ))}
           </select>
         </div>
       </div>

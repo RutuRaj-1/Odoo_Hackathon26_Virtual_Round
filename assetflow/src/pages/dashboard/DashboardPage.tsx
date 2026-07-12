@@ -12,7 +12,9 @@ import {
   Building,
   Bell,
   Activity,
-  Check
+  Check,
+  AlertTriangle,
+  ArrowLeftRight
 } from 'lucide-react'
 import {
   AreaChart,
@@ -30,6 +32,8 @@ import {
   Legend
 } from 'recharts'
 import { firestoreService } from '@/services/firestoreService'
+import { bookingService } from '@/services/bookingService'
+import { assetService } from '@/services/assetService'
 import { useAuth } from '@/hooks/useAuth'
 import type { Asset } from '@/types'
 
@@ -57,6 +61,8 @@ export function DashboardPage() {
     openMaintenance: 0,
     unreadNotifications: 0
   })
+  const [overdueCount, setOverdueCount] = useState(0)
+  const [pendingBookings, setPendingBookings] = useState(0)
   
   const [categoryData, setCategoryData] = useState<{name: string, value: number}[]>([])
   const [assetTrendData, setAssetTrendData] = useState<any[]>([])
@@ -73,6 +79,23 @@ export function DashboardPage() {
         setCounts(stats.counts)
         setRecentActivity(stats.recentActivity)
         setNotifications(stats.notifications)
+
+        // Pending bookings count
+        try {
+          const bookingsResp = await bookingService.getAll({ status: 'pending', page: 1, pageSize: 100 })
+          setPendingBookings(bookingsResp.total)
+        } catch (_) {}
+
+        // Overdue assets: allocated but not returned past expected date
+        try {
+          const assetsResp = await assetService.getAll({ status: 'Allocated', page: 1, pageSize: 500 })
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+          const overdue = assetsResp.data.filter(a => {
+            const updated = new Date(a.updatedAt || a.createdAt || '').getTime()
+            return updated < thirtyDaysAgo
+          })
+          setOverdueCount(overdue.length)
+        } catch (_) {}
 
         // Process Category Data
         if (stats.allAssets.length > 0) {
@@ -103,8 +126,7 @@ export function DashboardPage() {
         })
         setAssetTrendData(trends)
 
-        // Process Maintenance Data (Group by status across weeks)
-        // Simple mock week buckets for demonstration based on real counts
+        // Process Maintenance Data
         const scheduled = stats.allMaintenance.filter((m: any) => m.status === 'pending' || m.status === 'approved').length
         const completed = stats.allMaintenance.filter((m: any) => m.status === 'resolved').length
         const inProgress = stats.allMaintenance.filter((m: any) => m.status === 'in_progress').length
@@ -127,37 +149,46 @@ export function DashboardPage() {
 
   const statsCards = [
     {
-      id: 'total-assets',
-      label: 'Total Assets',
-      value: loading ? '...' : counts.totalAssets.toLocaleString(),
-      change: '+0%',
-      trend: 'up',
-      icon: Package,
-      color: 'bg-indigo-500/10 text-indigo-500'
-    },
-    {
       id: 'available-assets',
-      label: 'Available Assets',
+      label: 'Available',
       value: loading ? '...' : counts.availableAssets.toLocaleString(),
-      change: 'Active',
+      change: 'Ready to allocate',
       trend: 'up',
       icon: CheckCircle2,
       color: 'bg-emerald-500/10 text-emerald-500'
     },
     {
       id: 'allocated-assets',
-      label: 'Allocated Assets',
+      label: 'Allocated',
       value: loading ? '...' : counts.allocatedAssets.toLocaleString(),
-      change: 'Active',
+      change: 'Currently in use',
       trend: 'up',
-      icon: Users,
+      icon: ArrowLeftRight,
+      color: 'bg-indigo-500/10 text-indigo-500'
+    },
+    {
+      id: 'total-assets',
+      label: 'Total Assets',
+      value: loading ? '...' : counts.totalAssets.toLocaleString(),
+      change: 'Registered',
+      trend: 'up',
+      icon: Package,
       color: 'bg-blue-500/10 text-blue-500'
+    },
+    {
+      id: 'active-bookings',
+      label: 'Active Bookings',
+      value: loading ? '...' : pendingBookings.toLocaleString(),
+      change: 'Pending approval',
+      trend: 'up',
+      icon: CalendarCheck,
+      color: 'bg-purple-500/10 text-purple-500'
     },
     {
       id: 'open-maintenance',
       label: 'Maintenance',
       value: loading ? '...' : counts.openMaintenance.toLocaleString(),
-      change: 'Needs Attention',
+      change: 'Open tickets',
       trend: 'down',
       icon: Wrench,
       color: 'bg-orange-500/10 text-orange-500'
@@ -169,15 +200,6 @@ export function DashboardPage() {
       change: 'Active',
       trend: 'up',
       icon: Building,
-      color: 'bg-purple-500/10 text-purple-500'
-    },
-    {
-      id: 'total-employees',
-      label: 'Employees',
-      value: loading ? '...' : counts.totalEmployees.toLocaleString(),
-      change: 'Active',
-      trend: 'up',
-      icon: Users,
       color: 'bg-pink-500/10 text-pink-500'
     }
   ]
@@ -185,11 +207,25 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+        <h2 className="text-2xl font-bold text-white">Today's Overview</h2>
         <p className="text-sm text-white/60">
           Welcome back — here's what's happening with your assets today.
         </p>
       </div>
+
+      {/* Overdue Alert Banner */}
+      {!loading && overdueCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-5 py-3"
+        >
+          <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0" />
+          <p className="text-sm text-rose-300 font-medium">
+            {overdueCount} asset{overdueCount > 1 ? 's' : ''} overdue for return — flagged for follow-up.
+          </p>
+        </motion.div>
+      )}
 
       {/* Stats Cards Row */}
       <motion.div

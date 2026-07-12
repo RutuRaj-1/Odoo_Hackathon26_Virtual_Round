@@ -63,6 +63,8 @@ export interface Asset {
   assignedTo: string | null
   createdBy: string
   createdAt?: any
+  updatedAt?: string
+  nextMaintenanceDate?: string
   description?: string
 }
 

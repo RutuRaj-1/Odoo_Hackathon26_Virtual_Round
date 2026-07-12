@@ -35,6 +35,9 @@ import { BookingFormPage } from '@/pages/bookings/BookingFormPage'
 import { MaintenancePage } from '@/pages/maintenance/MaintenancePage'
 import { MaintenanceDetailPage } from '@/pages/maintenance/MaintenanceDetailPage'
 import { MaintenanceFormPage } from '@/pages/maintenance/MaintenanceFormPage'
+import { AllocationTransferPage } from '@/pages/allocation/AllocationTransferPage'
+import { AuditPage } from '@/pages/audit/AuditPage'
+import { ReportsPage } from '@/pages/reports/ReportsPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 
@@ -149,6 +152,15 @@ export const router = createBrowserRouter([
           { path: ROUTES.MAINTENANCE, element: <MaintenancePage /> },
           { path: ROUTES.MAINTENANCE_CREATE, element: <MaintenanceFormPage /> },
           { path: ROUTES.MAINTENANCE_DETAIL, element: <MaintenanceDetailPage /> },
+
+          // Allocation & Transfer
+          { path: ROUTES.ALLOCATIONS, element: <AllocationTransferPage /> },
+
+          // Audit
+          { path: ROUTES.AUDIT, element: <AuditPage /> },
+
+          // Reports & Analytics
+          { path: ROUTES.REPORTS, element: <ReportsPage /> },
 
           // Settings
           { path: ROUTES.SETTINGS, element: <SettingsPage /> },

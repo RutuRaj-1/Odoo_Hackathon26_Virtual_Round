@@ -10,6 +10,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Building,
+  ArrowLeftRight,
+  ClipboardList,
+  BarChart3,
+  Bell,
 } from 'lucide-react'
 import { cn } from '@/utils'
 import { ROUTES } from '@/constants'
@@ -53,7 +57,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       icon: Users,
     },
     {
-      label: 'Bookings',
+      label: 'Allocation & Transfer',
+      href: ROUTES.ALLOCATIONS,
+      icon: ArrowLeftRight,
+    },
+    {
+      label: 'Resource Booking',
       href: ROUTES.BOOKINGS,
       icon: CalendarCheck,
     },
@@ -62,11 +71,21 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       href: ROUTES.MAINTENANCE,
       icon: Wrench,
     },
+    {
+      label: 'Audit',
+      href: ROUTES.AUDIT,
+      icon: ClipboardList,
+    },
+    {
+      label: 'Reports',
+      href: ROUTES.REPORTS,
+      icon: BarChart3,
+    },
   ]
 
   // Inject Organization Setup for Admins
   if (isAdmin(role)) {
-    navItems.push({
+    navItems.splice(1, 0, {
       label: 'Organization',
       href: '/admin/organization',
       icon: Building,

@@ -36,6 +36,15 @@ export const ROUTES = {
   MAINTENANCE_DETAIL: '/maintenance/:id',
   MAINTENANCE_CREATE: '/maintenance/new',
 
+  // Allocation & Transfer
+  ALLOCATIONS: '/allocation-transfer',
+
+  // Audit
+  AUDIT: '/audit',
+
+  // Reports & Analytics
+  REPORTS: '/reports',
+
   // Settings
   SETTINGS: '/settings',
   PROFILE: '/profile',
