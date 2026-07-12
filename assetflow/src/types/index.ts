@@ -107,7 +107,7 @@ export interface Booking extends BaseEntity {
 
 // ─── Maintenance ───────────────────────────────────────────────────────────────
 export type MaintenanceType = 'preventive' | 'corrective' | 'predictive' | 'inspection'
-export type MaintenanceStatus = 'scheduled' | 'in_progress' | 'completed' | 'overdue' | 'cancelled'
+export type MaintenanceStatus = 'pending' | 'approved' | 'rejected' | 'technician_assigned' | 'in_progress' | 'resolved'
 export type MaintenancePriority = 'low' | 'medium' | 'high' | 'critical'
 
 export interface MaintenanceRecord extends BaseEntity {
@@ -119,9 +119,12 @@ export interface MaintenanceRecord extends BaseEntity {
   priority: MaintenancePriority
   title: string
   description: string
+  requestedBy: string
+  approvedBy?: string
+  resolvedBy?: string
   assignedTechnician?: string
   assignedTechnicianUser?: User
-  scheduledDate: string
+  scheduledDate?: string
   completedDate?: string
   estimatedCost?: number
   actualCost?: number
