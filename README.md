@@ -39,15 +39,15 @@ AssetFlow provides a comprehensive, conflict-aware solution:
 *   **CSV Data Exporting**: Download detailed analytical logs for department audits with a single click.
 
 ---
-![dashboard](assets/dashboard.jpeg)
+![dashboard](assets/analytics.jpeg)
 
 ---
 
-![analytics](assets/analytics.jpeg)
+![landing page](assets/landing_page.jpeg)
 
 ---
 
-![sign in page](asstes/signin.jpeg)
+![sign in page](assets/signin.jpeg)
 
 ---
 
@@ -57,25 +57,18 @@ AssetFlow provides a comprehensive, conflict-aware solution:
 *   **Component Library**: Radix UI (primitives), Lucide React (icons)
 *   **Data Visualization**: Recharts
 *   **LLM summariation** : Ollama (lama3.1:8b)
-
----
-
-## Screenshots
-Screenshots of the implemented POC layouts are saved in the project's artifact directory:
-*   **Dashboard Overview**: Overdue banners and active asset statistics.
-*   **Organization Console**: Department hierarchies and employee directories.
-*   **Allocation & Transfer**: Double-allocation warning panels.
-*   **Maintenance Board**: Kanban workflow columns.
-*   **Asset Audits**: Verified/Missing/Damaged pill selectors.
-*   **Reports Dashboard**: Utilization and maintenance frequency charts.
+*   **LLM backend** : FastAPI
 
 ---
 
 ## Installation
 
 ### Prerequisites
-*   Node.js (v18+)
-*   Firebase project configuration keys
+*  Node.js (v18+)
+*  Firebase project configuration keys
+*  python >= 3.10
+*  ollama
+*  Nvidia GPU (recommended for smooth LLM running)
 
 ### Setup Instructions
 1.  **Clone the repository and install dependencies**:
