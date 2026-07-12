@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
-import { ActivityLog, User } from '@/types'
+import type { ActivityLog, User } from '@/types'
 import { ClipboardList, CheckCircle2, XCircle } from 'lucide-react'
 
 export function ActivityLogsPage() {
