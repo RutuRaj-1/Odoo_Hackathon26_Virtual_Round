@@ -39,8 +39,9 @@ export const ROUTES = {
   // Allocation & Transfer
   ALLOCATIONS: '/allocation-transfer',
 
-  // Audit
+  // Audit & Logs
   AUDIT: '/audit',
+  ACTIVITY_LOGS: '/activity-logs',
 
   // Reports & Analytics
   REPORTS: '/reports',

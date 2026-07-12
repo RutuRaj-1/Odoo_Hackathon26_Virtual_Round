@@ -77,6 +77,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       icon: ClipboardList,
     },
     {
+      label: 'Activity Logs',
+      href: ROUTES.ACTIVITY_LOGS,
+      icon: ClipboardList,
+    },
+    {
       label: 'Reports',
       href: ROUTES.REPORTS,
       icon: BarChart3,

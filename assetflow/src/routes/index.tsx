@@ -37,6 +37,7 @@ import { MaintenanceDetailPage } from '@/pages/maintenance/MaintenanceDetailPage
 import { MaintenanceFormPage } from '@/pages/maintenance/MaintenanceFormPage'
 import { AllocationTransferPage } from '@/pages/allocation/AllocationTransferPage'
 import { AuditPage } from '@/pages/audit/AuditPage'
+import { ActivityLogsPage } from '@/pages/activity/ActivityLogsPage'
 import { ReportsPage } from '@/pages/reports/ReportsPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
@@ -156,8 +157,9 @@ export const router = createBrowserRouter([
           // Allocation & Transfer
           { path: ROUTES.ALLOCATIONS, element: <AllocationTransferPage /> },
 
-          // Audit
+          // Audit & Logs
           { path: ROUTES.AUDIT, element: <AuditPage /> },
+          { path: ROUTES.ACTIVITY_LOGS, element: <ActivityLogsPage /> },
 
           // Reports & Analytics
           { path: ROUTES.REPORTS, element: <ReportsPage /> },

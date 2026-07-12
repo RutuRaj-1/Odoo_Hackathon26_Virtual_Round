@@ -233,8 +233,12 @@ export interface TransferRequest {
 
 export interface ActivityLog {
   logId: string
-  assetId: string
+  assetId?: string
+  entityId?: string
+  entityType?: string
   action: string
+  description?: string
+  status?: 'success' | 'failed'
   actorId: string
   timestamp: any
 }

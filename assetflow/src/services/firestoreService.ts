@@ -246,6 +246,17 @@ export const firestoreService = {
       createdAt: serverTimestamp()
     }
     await setDoc(docRef, newAsset)
+    
+    // Log the activity
+    await this.logActivity({
+      entityId: docRef.id,
+      entityType: 'Asset',
+      action: 'Asset Registered',
+      description: `Registered new asset: ${data.assetName} (${data.assetTag})`,
+      status: 'success',
+      actorId: data.createdBy
+    })
+    
     return docRef.id
   },
 
@@ -459,5 +470,22 @@ export const firestoreService = {
       allAssets,
       allMaintenance
     }
+  },
+
+  // ─── Activity Logs ────────────────────────────────────────────────────────────
+  async logActivity(data: {
+    entityId?: string
+    entityType?: string
+    action: string
+    description?: string
+    status?: 'success' | 'failed'
+    actorId: string
+  }): Promise<void> {
+    const docRef = doc(collection(db, 'activityLogs'))
+    await setDoc(docRef, {
+      logId: docRef.id,
+      ...data,
+      timestamp: serverTimestamp()
+    })
   }
 }
