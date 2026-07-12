@@ -137,23 +137,43 @@ export const firestoreService = {
   },
 
   // ─── Employee Directory CRUD ──────────────────────────────────────────────────
+  // Subscribe to employees for real-time updates
+  subscribeToEmployees(callback: (employees: User[]) => void): () => void {
+    const colRef = collection(db, 'users')
+    return onSnapshot(colRef, (snapshot) => {
+      const employees = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data()
+        return {
+          uid: docSnap.id,
+          name: data.name || '',
+          email: data.email || '',
+          role: data.role as UserRole,
+          departmentId: data.departmentId || null,
+          status: data.status || 'Active',
+          createdAt: data.createdAt
+        } as User
+      })
+      callback(employees)
+    }, (error) => {
+      console.error('Error subscribing to employees:', error)
+    })
+  },
+
   // Get all users in the organization
   async getEmployees(): Promise<User[]> {
     const colRef = collection(db, 'users')
     const snapshot = await getDocs(colRef)
-    return snapshot.docs.map((doc) => {
-      const data = doc.data()
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data()
       return {
-        id: doc.id,
-        uid: doc.id,
-        email: data.email || '',
+        uid: docSnap.id,
         name: data.name || '',
+        email: data.email || '',
         role: data.role as UserRole,
         departmentId: data.departmentId || null,
         status: data.status || 'Active',
-        createdAt: data.createdAt,
-        avatarUrl: data.avatarUrl
-      }
+        createdAt: data.createdAt
+      } as User
     })
   },
 
@@ -168,8 +188,7 @@ export const firestoreService = {
   ): Promise<void> {
     const docRef = doc(db, 'users', uid)
     await updateDoc(docRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
+      ...updates
     })
   }
 }

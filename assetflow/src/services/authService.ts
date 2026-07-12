@@ -41,11 +41,10 @@ export interface PhoneOtpVerifyPayload {
 export interface AuthResult {
   token: string
   user: {
-    id: string
+    uid: string
     name: string
     email: string
     role: UserRole
-    avatarUrl?: string
   }
 }
 
@@ -125,11 +124,10 @@ export const authService = {
       return {
         token,
         user: {
-          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           name: userData.name || firebaseUser.displayName || 'Unnamed User',
           email: firebaseUser.email || '',
           role: userData.role || 'employee',
-          avatarUrl: userData.avatarUrl || firebaseUser.photoURL || undefined,
         },
       }
     } catch (error) {
@@ -171,11 +169,10 @@ export const authService = {
       return {
         token,
         user: {
-          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           name,
           email: firebaseUser.email || '',
           role: role as UserRole,
-          avatarUrl: firebaseUser.photoURL || undefined,
         },
       }
     } catch (error) {
@@ -248,11 +245,10 @@ export const authService = {
       return {
         token,
         user: {
-          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           name,
           email: firebaseUser.email || payload.phoneNumber,
           role: role as UserRole,
-          avatarUrl: firebaseUser.photoURL || undefined,
         },
       }
     } catch (error) {
@@ -289,7 +285,7 @@ export const authService = {
       return {
         token,
         user: {
-          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           name: payload.name,
           email: payload.email,
           role: 'Employee',

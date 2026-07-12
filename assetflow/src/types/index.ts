@@ -7,17 +7,13 @@ export interface BaseEntity {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────────
 export interface User {
-  id: string
-  uid?: string
-  email: string
+  uid: string
   name: string
+  email: string
   role: UserRole
-  avatarUrl?: string
-  departmentId?: string | null
-  department?: string
-  status?: 'Active' | 'Inactive'
+  departmentId: string | null
+  status: 'Active' | 'Inactive'
   createdAt?: any
-  updatedAt?: any
 }
 
 export type UserRole = 'Admin' | 'Asset Manager' | 'Department Head' | 'Employee' | 'admin' | 'manager' | 'employee' | 'viewer'

@@ -20,9 +20,11 @@ import { useToast } from '@/components/ui/toast'
 import { firestoreService } from '@/services/firestoreService'
 import type { Department, AssetCategoryDoc, User, UserRole } from '@/types'
 import { getInitials } from '@/utils'
+import { useAuth } from '@/hooks/useAuth'
 
 export function OrganizationPage() {
   const { toast } = useToast()
+  const { currentUser } = useAuth()
   
   // Data States
   const [departments, setDepartments] = useState<Department[]>([])
@@ -57,36 +59,21 @@ export function OrganizationPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
 
-  // Load Firestore Data
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [empList] = await Promise.all([
-        firestoreService.getEmployees()
-      ])
-      setEmployees(empList)
-    } catch (error: any) {
-      toast({
-        variant: 'error',
-        title: 'Error loading data',
-        description: error?.message || 'Something went wrong.'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    loadData()
     const unsubscribeDept = firestoreService.subscribeToDepartments((data) => {
       setDepartments(data)
     })
     const unsubscribeCat = firestoreService.subscribeToCategories((data) => {
       setCategories(data)
     })
+    const unsubscribeEmp = firestoreService.subscribeToEmployees((data) => {
+      setEmployees(data)
+      setLoading(false)
+    })
     return () => {
       unsubscribeDept()
       unsubscribeCat()
+      unsubscribeEmp()
     }
   }, [])
 
@@ -159,8 +146,13 @@ export function OrganizationPage() {
     e.preventDefault()
     if (!promoModal.user) return
 
+    if (currentUser?.uid === promoModal.user.uid && promoModal.role !== promoModal.user.role) {
+      toast({ variant: 'error', title: 'Action Denied', description: 'You cannot change your own role.' })
+      return
+    }
+
     try {
-      await firestoreService.updateEmployeeRoleAndDepartment(promoModal.user.uid || promoModal.user.id, {
+      await firestoreService.updateEmployeeRoleAndDepartment(promoModal.user.uid, {
         role: promoModal.role,
         departmentId: promoModal.departmentId,
         status: promoModal.status
@@ -171,7 +163,6 @@ export function OrganizationPage() {
         description: `Successfully updated settings for ${promoModal.user.name}.`
       })
       setPromoModal({ open: false, role: 'Employee', departmentId: null, status: 'Active' })
-      loadData()
     } catch (error: any) {
       toast({ variant: 'error', title: 'Update Failed', description: error.message })
     }
@@ -507,20 +498,12 @@ export function OrganizationPage() {
                   </tr>
                 ) : (
                   paginatedEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-white/1.5 transition-colors">
+                    <tr key={emp.uid} className="hover:bg-white/1.5 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {emp.avatarUrl ? (
-                            <img
-                              src={emp.avatarUrl}
-                              alt={emp.name}
-                              className="h-9 w-9 rounded-full object-cover border border-white/10"
-                            />
-                          ) : (
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold border border-indigo-500/20">
-                              {getInitials(emp.name)}
-                            </div>
-                          )}
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold border border-indigo-500/20">
+                            {getInitials(emp.name)}
+                          </div>
                           <span className="font-semibold text-white/90">{emp.name}</span>
                         </div>
                       </td>

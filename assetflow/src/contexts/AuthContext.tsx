@@ -50,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const userData = docSnap.data()
             
             const mappedUser: User = {
-              id: firebaseUser.uid,
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               name: userData.name || firebaseUser.displayName || 'Unnamed User',
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               departmentId: userData.departmentId || null,
               status: (userData.status as 'Active' | 'Inactive') || 'Active',
               createdAt: userData.createdAt,
-              avatarUrl: userData.avatarUrl || firebaseUser.photoURL || undefined,
             }
 
             const token = await firebaseUser.getIdToken()
@@ -72,7 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             // User doc doesn't exist in Firestore yet (will be created in signup/google login)
             const mappedUser: User = {
-              id: firebaseUser.uid,
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               name: firebaseUser.displayName || 'Unnamed User',
@@ -127,7 +124,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const userData = docSnap.data()
       const mappedUser: User = {
-        id: firebaseUser.uid,
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
         name: userData.name || firebaseUser.displayName || 'Unnamed User',
@@ -135,7 +131,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         departmentId: userData.departmentId || null,
         status: (userData.status as 'Active' | 'Inactive') || 'Active',
         createdAt: userData.createdAt,
-        avatarUrl: userData.avatarUrl || firebaseUser.photoURL || undefined,
       }
 
       const token = await firebaseUser.getIdToken()
@@ -161,8 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await authService.signup(payload)
       
       const mappedUser: User = {
-        id: result.user.id,
-        uid: result.user.id,
+        uid: result.user.uid,
         email: result.user.email,
         name: result.user.name,
         role: result.user.role,
@@ -213,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        uid: state.user?.id || null,
+        uid: state.user?.uid || null,
         email: state.user?.email || null,
         role: state.user?.role || null,
         departmentId: state.user?.departmentId || null,
