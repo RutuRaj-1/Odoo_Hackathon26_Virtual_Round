@@ -249,7 +249,7 @@ export function SettingsPage() {
                       return (
                         <button
                           key={mode.id}
-                          onClick={() => setTheme(mode.id)}
+                          onClick={() => setTheme(mode.id as 'light' | 'dark')}
                           className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-sm font-semibold transition-all ${
                             isSelected
                               ? 'border-primary bg-primary/5 text-primary'

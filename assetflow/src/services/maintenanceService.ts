@@ -27,7 +27,31 @@ export const maintenanceService = {
     })
   },
 
-  async raiseRequest(data: Omit<MaintenanceRecord, 'id' | 'createdAt' | 'updatedAt' | 'ticketNumber' | 'status'>, userId: string): Promise<string> {
+  // Get all maintenance requests with in-memory pagination
+  async getAll(params?: { page?: number; pageSize?: number }): Promise<{ data: MaintenanceRecord[]; total: number; page: number; pageSize: number; totalPages: number }> {
+    const colRef = collection(db, 'maintenanceRequests')
+    const snapshot = await getDocs(colRef)
+    const data = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    })) as MaintenanceRecord[]
+
+    const total = data.length
+    const page = params?.page ?? 1
+    const pageSize = params?.pageSize ?? 10
+    const totalPages = Math.ceil(total / pageSize)
+    const paginatedData = data.slice((page - 1) * pageSize, page * pageSize)
+
+    return {
+      data: paginatedData,
+      total,
+      page,
+      pageSize,
+      totalPages
+    }
+  },
+
+  async raiseRequest(data: Omit<MaintenanceRecord, 'id' | 'createdAt' | 'updatedAt' | 'ticketNumber' | 'status' | 'requestedBy'>, userId: string): Promise<string> {
     const colRef = collection(db, 'maintenanceRequests')
     const snapshot = await getDocs(colRef)
     const count = snapshot.size
@@ -42,7 +66,7 @@ export const maintenanceService = {
       requestedBy: userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    }
+    } as MaintenanceRecord
     await setDoc(docRef, newRecord)
     return docRef.id
   },
