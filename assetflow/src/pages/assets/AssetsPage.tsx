@@ -1,216 +1,271 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, Eye, Edit, Trash2, Package } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Eye,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { firestoreService } from '@/services/firestoreService'
-import type { Asset, Department, AssetCategoryDoc } from '@/types'
-import { ROUTES } from '@/constants'
 import { useToast } from '@/components/ui/toast'
+import { assetService } from '@/services/assetService'
+import type { Asset, AssetStatus } from '@/types'
+import { ROUTES } from '@/constants'
 
 export function AssetsPage() {
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [categories, setCategories] = useState<AssetCategoryDoc[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
-  const [departmentFilter, setDepartmentFilter] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  const navigate = useNavigate()
   const { toast } = useToast()
+  const [assets, setAssets] = useState<Asset[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  // Search & Filters State
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState<string>('')
+  const [status, setStatus] = useState<string>('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const pageSize = 8
+
+  const loadAssets = async () => {
+    setLoading(true)
+    try {
+      const res = await assetService.getAll({
+        search: search.trim() || undefined,
+        category: category || undefined,
+        status: (status as AssetStatus) || undefined,
+        page,
+        pageSize
+      })
+      setAssets(res.data)
+      setTotal(res.total)
+      setTotalPages(res.totalPages)
+    } catch (err: any) {
+      toast({
+        variant: 'error',
+        title: 'Error loading assets',
+        description: err.message || 'Something went wrong.'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const unsubAssets = firestoreService.subscribeToAssets(data => {
-      setAssets(data)
-      setLoading(false)
-    })
-    const unsubDepts = firestoreService.subscribeToDepartments(setDepartments)
-    const unsubCats = firestoreService.subscribeToCategories(setCategories)
+    loadAssets()
+  }, [search, category, status, page])
 
-    return () => {
-      unsubAssets()
-      unsubDepts()
-      unsubCats()
-    }
-  }, [])
-
-  const filteredAssets = useMemo(() => {
-    return assets.filter(asset => {
-      const matchesSearch =
-        asset.assetTag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.serialNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.location.toLowerCase().includes(searchQuery.toLowerCase())
-      
-      const matchesStatus = statusFilter ? asset.status === statusFilter : true
-      const matchesCategory = categoryFilter ? asset.categoryId === categoryFilter : true
-      const matchesDepartment = departmentFilter ? asset.departmentId === departmentFilter : true
-
-      return matchesSearch && matchesStatus && matchesCategory && matchesDepartment
-    })
-  }, [assets, searchQuery, statusFilter, categoryFilter, departmentFilter])
-
-  const handleDelete = async (assetId: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this asset?')) return
     try {
-      await firestoreService.deleteAsset(assetId)
-      toast({ variant: 'success', title: 'Asset Deleted', description: 'Asset was successfully removed.' })
-    } catch (error: any) {
-      toast({ variant: 'error', title: 'Error', description: error.message })
+      await assetService.delete(id)
+      toast({
+        variant: 'success',
+        title: 'Asset Deleted',
+        description: 'The asset has been successfully deleted.'
+      })
+      loadAssets()
+    } catch (err: any) {
+      toast({
+        variant: 'error',
+        title: 'Delete Failed',
+        description: err.message
+      })
     }
-  }
-
-  const getDepartmentName = (id: string | null) => {
-    if (!id) return 'Unassigned'
-    return departments.find(d => d.departmentId === id)?.name || id
-  }
-
-  const getCategoryName = (id: string) => {
-    return categories.find(c => c.categoryId === id)?.name || id
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-      case 'Allocated': return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-      case 'Reserved': return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-      case 'Under Maintenance': return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-      case 'Retired':
-      case 'Disposed':
-      case 'Lost':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-      default: return 'bg-white/10 text-white/70 border-white/20'
-    }
-  }
-
-  if (loading) {
-    return <div className="p-8 text-center text-white/50">Loading assets...</div>
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Assets</h2>
-          <p className="text-sm text-white/60">Manage hardware, software, and physical equipment.</p>
+          <h2 className="text-2xl font-bold text-foreground">Assets Directory</h2>
+          <p className="text-sm text-muted-foreground">
+            Register and track your organization's physical and digital assets.
+          </p>
         </div>
-        <Button onClick={() => navigate(ROUTES.ASSET_CREATE)} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
-          <Plus className="h-4 w-4" />
-          Register Asset
+        <Button asChild className="gap-2">
+          <Link to={ROUTES.ASSET_CREATE}>
+            <Plus className="h-4 w-4" /> New Asset
+          </Link>
         </Button>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-[#0c0c0f] overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+      {/* Filter Row */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
+        <div className="md:col-span-2">
+          <label className="text-xs text-white/45 mb-1.5 block">Search asset</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by tag, name, serial..."
-              className="pl-9 w-full bg-white/5 border-white/10 text-white placeholder:text-white/40"
+              placeholder="Search by tag, name, or serial..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+              className="pl-9 bg-[#111115]"
             />
-          </div>
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
-            >
-              <option value="">All Categories</option>
-              {categories.map(c => <option key={c.categoryId} value={c.categoryId}>{c.name}</option>)}
-            </select>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
-            >
-              <option value="">All Departments</option>
-              {departments.map(d => <option key={d.departmentId} value={d.departmentId}>{d.name}</option>)}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[130px]"
-            >
-              <option value="">All Statuses</option>
-              <option value="Available">Available</option>
-              <option value="Allocated">Allocated</option>
-              <option value="Reserved">Reserved</option>
-              <option value="Under Maintenance">Under Maintenance</option>
-              <option value="Retired">Retired</option>
-              <option value="Disposed">Disposed</option>
-              <option value="Lost">Lost</option>
-            </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm text-white/70">
-            <thead className="border-b border-white/8 bg-white/3 text-xs font-semibold uppercase tracking-wider text-white/40">
+        <div>
+          <label className="text-xs text-white/45 mb-1.5 block">Category</label>
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value)
+              setPage(1)
+            }}
+            className="w-full h-10 rounded-lg border border-white/8 bg-[#111115] px-3 py-1 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">All Categories</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
+            <option value="furniture">Furniture</option>
+            <option value="vehicle">Vehicle</option>
+            <option value="equipment">Equipment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/45 mb-1.5 block">Status</label>
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value)
+              setPage(1)
+            }}
+            className="w-full h-10 rounded-lg border border-white/8 bg-[#111115] px-3 py-1 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">All Statuses</option>
+            <option value="Available">Available</option>
+            <option value="Allocated">Allocated</option>
+            <option value="Reserved">Reserved</option>
+            <option value="Under Maintenance">Under Maintenance</option>
+            <option value="Lost">Lost</option>
+            <option value="Retired">Retired</option>
+            <option value="Disposed">Disposed</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Asset Table */}
+      <div className="overflow-hidden rounded-xl border border-white/8 bg-[#0c0c0f]">
+        <table className="w-full border-collapse text-left text-sm text-white/70">
+          <thead className="border-b border-white/8 bg-white/3 text-xs font-semibold uppercase tracking-wider text-white/40">
+            <tr>
+              <th className="px-6 py-3.5">Asset Tag</th>
+              <th className="px-6 py-3.5">Name</th>
+              <th className="px-6 py-3.5">Category</th>
+              <th className="px-6 py-3.5">Status</th>
+              <th className="px-6 py-3.5">Condition</th>
+              <th className="px-6 py-3.5">Location</th>
+              <th className="px-6 py-3.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {loading && assets.length === 0 ? (
               <tr>
-                <th className="px-6 py-4">Asset</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Department</th>
-                <th className="px-6 py-4">Location</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <td colSpan={7} className="px-6 py-8 text-center text-white/30">
+                  <div className="flex justify-center items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                    Loading assets...
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredAssets.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-white/30">
-                    <div className="flex flex-col items-center gap-2">
-                      <Package className="h-8 w-8 text-white/20" />
-                      <span>No assets found matching your criteria.</span>
+            ) : assets.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-8 text-center text-white/30">
+                  No assets found in the directory.
+                </td>
+              </tr>
+            ) : (
+              assets.map((asset) => (
+                <tr key={asset.assetId} className="hover:bg-white/1.5 transition-colors">
+                  <td className="px-6 py-4 font-mono font-medium text-white/90">{asset.assetTag}</td>
+                  <td className="px-6 py-4 font-semibold text-white/90">{asset.assetName}</td>
+                  <td className="px-6 py-4 capitalize">{asset.categoryId}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        asset.status === 'Available'
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : asset.status === 'Allocated'
+                          ? 'bg-indigo-500/10 text-indigo-400'
+                          : asset.status === 'Under Maintenance'
+                          ? 'bg-amber-500/10 text-amber-400'
+                          : 'bg-white/5 text-white/30'
+                      }`}
+                    >
+                      {asset.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 capitalize">{asset.condition}</td>
+                  <td className="px-6 py-4 text-white/50">{asset.location || 'HQ'}</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        to={`${ROUTES.ASSETS}/${asset.assetId}`}
+                        className="p-1 text-white/40 hover:text-white/80 transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        to={`${ROUTES.ASSETS}/${asset.assetId}/edit`}
+                        className="p-1 text-white/40 hover:text-white/80 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(asset.assetId)}
+                        className="p-1 text-white/40 hover:text-red-400 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
-              ) : (
-                filteredAssets.map(asset => (
-                  <tr key={asset.assetId} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-white/90">{asset.assetName}</span>
-                        <span className="text-xs text-white/40">{asset.assetTag} • {asset.serialNumber}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">{getCategoryName(asset.categoryId)}</td>
-                    <td className="px-6 py-4">{getDepartmentName(asset.departmentId)}</td>
-                    <td className="px-6 py-4">{asset.location}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium border ${getStatusColor(asset.status)}`}>
-                        {asset.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link to={`/assets/${asset.assetId}`} className="p-1.5 text-white/40 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-md transition-colors">
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                        <Link to={`/assets/${asset.assetId}/edit`} className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-400/10 rounded-md transition-colors">
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                        <button onClick={() => handleDelete(asset.assetId)} className="p-1.5 text-white/40 hover:text-rose-400 hover:bg-rose-400/10 rounded-md transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between border-t border-white/8 bg-white/2 px-6 py-4">
+          <span className="text-xs text-white/35">
+            Showing {total === 0 ? 0 : (page - 1) * pageSize + 1} to{' '}
+            {Math.min(page * pageSize, total)} of {total} assets
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

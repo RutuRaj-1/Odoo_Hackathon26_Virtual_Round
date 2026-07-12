@@ -63,6 +63,7 @@ export interface Asset {
   assignedTo: string | null
   createdBy: string
   createdAt?: any
+  description?: string
 }
 
 // ─── Employees ─────────────────────────────────────────────────────────────────
