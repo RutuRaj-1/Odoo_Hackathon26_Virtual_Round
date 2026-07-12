@@ -6,10 +6,11 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  onSnapshot
+  onSnapshot,
+  runTransaction
 } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
-import type { Department, AssetCategoryDoc, User, UserRole, Asset } from '@/types'
+import type { Department, AssetCategoryDoc, User, UserRole, Asset, Allocation, TransferRequest, ActivityLog, AppNotification } from '@/types'
 
 // ─── Department Management CRUD ───────────────────────────────────────────────
 export const firestoreService = {
@@ -251,5 +252,138 @@ export const firestoreService = {
   async deleteAsset(assetId: string): Promise<void> {
     const docRef = doc(db, 'assets', assetId)
     await deleteDoc(docRef)
+  },
+
+  // ─── Allocations & Transfers ──────────────────────────────────────────────────
+  async allocateAsset(assetId: string, userId: string, expectedReturnDate: string | null, adminId: string): Promise<void> {
+    const assetRef = doc(db, 'assets', assetId)
+    
+    await runTransaction(db, async (transaction) => {
+      const assetDoc = await transaction.get(assetRef)
+      if (!assetDoc.exists()) {
+        throw new Error('Asset does not exist!')
+      }
+
+      const assetData = assetDoc.data() as Asset
+      if (assetData.status !== 'Available') {
+        throw new Error(`Asset is currently not available. It is ${assetData.status} (assigned to ${assetData.assignedTo || 'nobody'}).`)
+      }
+
+      // Update Asset
+      transaction.update(assetRef, {
+        status: 'Allocated',
+        assignedTo: userId
+      })
+
+      // Create Allocation
+      const allocRef = doc(collection(db, 'allocations'))
+      transaction.set(allocRef, {
+        allocationId: allocRef.id,
+        assetId,
+        assignedTo: userId,
+        assignedBy: adminId,
+        allocationDate: serverTimestamp(),
+        expectedReturnDate,
+        returnDate: null,
+        returnConditionNotes: null,
+        status: 'Active'
+      })
+
+      // Create ActivityLog
+      const logRef = doc(collection(db, 'activityLogs'))
+      transaction.set(logRef, {
+        logId: logRef.id,
+        assetId,
+        action: `Allocated to user ${userId}`,
+        actorId: adminId,
+        timestamp: serverTimestamp()
+      })
+
+      // Create Notification
+      const notifRef = doc(collection(db, 'notifications'))
+      transaction.set(notifRef, {
+        notificationId: notifRef.id,
+        userId,
+        title: 'New Asset Assigned',
+        message: `Asset ${assetData.assetName} has been assigned to you.`,
+        isRead: false,
+        timestamp: serverTimestamp()
+      })
+    })
+  },
+
+  async returnAsset(allocationId: string, assetId: string, conditionNotes: string, adminId: string): Promise<void> {
+    const assetRef = doc(db, 'assets', assetId)
+    const allocRef = doc(db, 'allocations', allocationId)
+
+    await runTransaction(db, async (transaction) => {
+      const allocDoc = await transaction.get(allocRef)
+      if (!allocDoc.exists()) throw new Error('Allocation does not exist.')
+      
+      const assetDoc = await transaction.get(assetRef)
+      if (!assetDoc.exists()) throw new Error('Asset does not exist.')
+
+      transaction.update(allocRef, {
+        status: 'Returned',
+        returnDate: serverTimestamp(),
+        returnConditionNotes: conditionNotes
+      })
+
+      transaction.update(assetRef, {
+        status: 'Available',
+        assignedTo: null
+      })
+
+      const logRef = doc(collection(db, 'activityLogs'))
+      transaction.set(logRef, {
+        logId: logRef.id,
+        assetId,
+        action: `Returned by user ${allocDoc.data().assignedTo}`,
+        actorId: adminId,
+        timestamp: serverTimestamp()
+      })
+    })
+  },
+
+  async requestTransfer(assetId: string, fromUserId: string, toUserId: string, requesterId: string): Promise<void> {
+    const requestRef = doc(collection(db, 'transferRequests'))
+    await setDoc(requestRef, {
+      requestId: requestRef.id,
+      assetId,
+      fromUser: fromUserId,
+      toUser: toUserId,
+      requestedBy: requesterId,
+      status: 'Pending',
+      createdAt: serverTimestamp()
+    })
+
+    const notifRef = doc(collection(db, 'notifications'))
+    await setDoc(notifRef, {
+      notificationId: notifRef.id,
+      userId: fromUserId, // Can send to admin or current holder
+      title: 'Transfer Requested',
+      message: `A transfer request for asset ${assetId} has been submitted.`,
+      isRead: false,
+      timestamp: serverTimestamp()
+    })
+  },
+
+  async getAssetActivityLogs(assetId: string): Promise<ActivityLog[]> {
+    const colRef = collection(db, 'activityLogs')
+    const snapshot = await getDocs(colRef)
+    return snapshot.docs
+      .map(doc => doc.data() as ActivityLog)
+      .filter(log => log.assetId === assetId)
+      .sort((a, b) => {
+        if (!a.timestamp || !b.timestamp) return 0
+        return b.timestamp.toMillis() - a.timestamp.toMillis()
+      })
+  },
+
+  async getActiveAllocation(assetId: string): Promise<Allocation | null> {
+    const colRef = collection(db, 'allocations')
+    const snapshot = await getDocs(colRef)
+    const allocs = snapshot.docs.map(d => d.data() as Allocation)
+    return allocs.find(a => a.assetId === assetId && a.status === 'Active') || null
   }
 }

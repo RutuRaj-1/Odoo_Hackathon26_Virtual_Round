@@ -202,6 +202,46 @@ export interface Notification extends BaseEntity {
   actionUrl?: string
 }
 
+// ─── Allocations & Transfers ───────────────────────────────────────────────────
+export interface Allocation {
+  allocationId: string
+  assetId: string
+  assignedTo: string
+  assignedBy: string
+  allocationDate: any
+  expectedReturnDate: string | null
+  returnDate: any | null
+  returnConditionNotes: string | null
+  status: 'Active' | 'Returned' | 'Transfer_Pending'
+}
+
+export interface TransferRequest {
+  requestId: string
+  assetId: string
+  fromUser: string
+  toUser: string
+  requestedBy: string
+  status: 'Pending' | 'Approved' | 'Rejected'
+  createdAt: any
+}
+
+export interface ActivityLog {
+  logId: string
+  assetId: string
+  action: string
+  actorId: string
+  timestamp: any
+}
+
+export interface AppNotification {
+  notificationId: string
+  userId: string
+  title: string
+  message: string
+  isRead: boolean
+  timestamp: any
+}
+
 // ─── API Response ──────────────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   data: T
