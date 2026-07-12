@@ -198,7 +198,7 @@ export function OrganizationPage() {
 
   const getUserName = (userId?: string | null) => {
     if (!userId) return 'Unassigned'
-    return employees.find((e) => e.uid === userId || e.id === userId)?.name || 'Unassigned'
+    return employees.find((e) => e.uid === userId)?.name || 'Unassigned'
   }
 
   if (loading && employees.length === 0) {
@@ -651,7 +651,7 @@ export function OrganizationPage() {
                 >
                   <option value="">Unassigned</option>
                   {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
+                    <option key={emp.uid} value={emp.uid}>
                       {emp.name} ({emp.email})
                     </option>
                   ))}

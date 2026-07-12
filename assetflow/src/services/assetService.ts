@@ -17,7 +17,6 @@ export const assetService = {
     const colRef = collection(db, 'assets')
     const snapshot = await getDocs(colRef)
     let data = snapshot.docs.map((doc) => ({
-      id: doc.id,
       ...doc.data()
     })) as Asset[]
 
@@ -26,15 +25,15 @@ export const assetService = {
       const search = params.search.toLowerCase()
       data = data.filter(
         (item) =>
-          item.name.toLowerCase().includes(search) ||
-          item.assetTag.toLowerCase().includes(search) ||
+          (item.assetName && item.assetName.toLowerCase().includes(search)) ||
+          (item.assetTag && item.assetTag.toLowerCase().includes(search)) ||
           (item.serialNumber && item.serialNumber.toLowerCase().includes(search))
       )
     }
 
     // Apply Category Filter
     if (params?.category) {
-      data = data.filter((item) => item.category === params.category)
+      data = data.filter((item) => item.categoryId === params.category)
     }
 
     // Apply Status Filter
@@ -65,11 +64,11 @@ export const assetService = {
     if (!docSnap.exists()) {
       throw new Error('Asset not found.')
     }
-    return { id: docSnap.id, ...docSnap.data() } as Asset
+    return { ...docSnap.data() } as Asset
   },
 
   // Create asset with auto-generated asset tag
-  async create(data: Omit<Asset, 'id' | 'createdAt' | 'updatedAt'>): Promise<Asset> {
+  async create(data: Omit<Asset, 'assetId' | 'assetTag' | 'createdAt'>): Promise<Asset> {
     const colRef = collection(db, 'assets')
     const snapshot = await getDocs(colRef)
     const count = snapshot.size
@@ -79,11 +78,10 @@ export const assetService = {
     const timestamp = new Date().toISOString()
     const newAsset: Asset = {
       ...data,
-      id: docRef.id,
+      assetId: docRef.id,
       assetTag,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }
+      createdAt: timestamp
+    } as Asset
     await setDoc(docRef, newAsset)
     return newAsset
   },
@@ -91,14 +89,9 @@ export const assetService = {
   // Update asset
   async update(id: string, data: Partial<Asset>): Promise<Asset> {
     const docRef = doc(db, 'assets', id)
-    const timestamp = new Date().toISOString()
-    const updates = {
-      ...data,
-      updatedAt: timestamp
-    }
-    await updateDoc(docRef, updates)
+    await updateDoc(docRef, data)
     const docSnap = await getDoc(docRef)
-    return { id: docSnap.id, ...docSnap.data() } as Asset
+    return { ...docSnap.data() } as Asset
   },
 
   // Delete asset
