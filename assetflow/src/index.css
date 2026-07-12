@@ -1,86 +1,87 @@
 @import "tailwindcss";
 
-/* ── Step 1: Raw CSS variable values (light & dark) ──────────────────────────
-   These are just CSS custom properties — no Tailwind involvement yet.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Step 1: Raw CSS variables (Light and Dark) ───────────────────────────── */
 :root {
-  --background:           0 0% 98%;
-  --foreground:           222 47% 11%;
-  --card:                 0 0% 100%;
-  --card-foreground:      222 47% 11%;
-  --popover:              0 0% 100%;
-  --popover-foreground:   222 47% 11%;
-  --primary:              246 80% 60%;
-  --primary-foreground:   0 0% 100%;
-  --secondary:            210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted:                210 40% 96%;
-  --muted-foreground:     215 16% 47%;
-  --accent:               210 40% 94%;
-  --accent-foreground:    222 47% 11%;
-  --destructive:          0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border:               214 32% 91%;
-  --input:                214 32% 91%;
-  --ring:                 246 80% 60%;
+  --background:           #F8FAFC;
+  --foreground:           #0F172A;
+  --card:                 #FFFFFF;
+  --card-foreground:      #0F172A;
+  --popover:              #FFFFFF;
+  --popover-foreground:   #0F172A;
+  --primary:              #714B67;
+  --primary-foreground:   #FFFFFF;
+  --secondary:            #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted:                #F1F5F9;
+  --muted-foreground:     #64748B;
+  --accent:               #F1F5F9;
+  --accent-foreground:    #0F172A;
+  --destructive:          #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border:               #E2E8F0;
+  --input:                #E2E8F0;
+  --ring:                 #714B67;
+  --success:              #22C55E;
+  --warning:              #F59E0B;
+  --error:                #EF4444;
 }
 
 .dark {
-  --background:           222 47% 7%;
-  --foreground:           210 40% 96%;
-  --card:                 222 47% 10%;
-  --card-foreground:      210 40% 96%;
-  --popover:              222 47% 10%;
-  --popover-foreground:   210 40% 96%;
-  --primary:              246 80% 65%;
-  --primary-foreground:   0 0% 100%;
-  --secondary:            217 33% 17%;
-  --secondary-foreground: 210 40% 96%;
-  --muted:                217 33% 17%;
-  --muted-foreground:     215 20% 55%;
-  --accent:               217 33% 20%;
-  --accent-foreground:    210 40% 96%;
-  --destructive:          0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-  --border:               217 33% 17%;
-  --input:                217 33% 17%;
-  --ring:                 246 80% 65%;
+  --background:           #0B0B0E;
+  --foreground:           #F1F5F9;
+  --card:                 #111116;
+  --card-foreground:      #F1F5F9;
+  --popover:              #111116;
+  --popover-foreground:   #F1F5F9;
+  --primary:              #8A5E7E;
+  --primary-foreground:   #FFFFFF;
+  --secondary:            #1B1A22;
+  --secondary-foreground: #F1F5F9;
+  --muted:                #1E1D27;
+  --muted-foreground:     #94A3B8;
+  --accent:               #1E1D27;
+  --accent-foreground:    #F1F5F9;
+  --destructive:          #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border:               #23222B;
+  --input:                #23222B;
+  --ring:                 #8A5E7E;
+  --success:              #22C55E;
+  --warning:              #F59E0B;
+  --error:                #EF4444;
 }
 
-/* ── Step 2: Register tokens with Tailwind v4 via @theme inline ───────────────
-   This is the v4 way to bridge CSS vars → utility classes such as
-   bg-background, text-foreground, border-border, etc.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Step 2: Register colors with Tailwind v4 ──────────────────────────────── */
 @theme inline {
-  --color-background:           hsl(var(--background));
-  --color-foreground:           hsl(var(--foreground));
-  --color-card:                 hsl(var(--card));
-  --color-card-foreground:      hsl(var(--card-foreground));
-  --color-popover:              hsl(var(--popover));
-  --color-popover-foreground:   hsl(var(--popover-foreground));
-  --color-primary:              hsl(var(--primary));
-  --color-primary-foreground:   hsl(var(--primary-foreground));
-  --color-secondary:            hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted:                hsl(var(--muted));
-  --color-muted-foreground:     hsl(var(--muted-foreground));
-  --color-accent:               hsl(var(--accent));
-  --color-accent-foreground:    hsl(var(--accent-foreground));
-  --color-destructive:          hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border:               hsl(var(--border));
-  --color-input:                hsl(var(--input));
-  --color-ring:                 hsl(var(--ring));
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-foreground);
+  --color-popover:              var(--popover);
+  --color-popover-foreground:   var(--popover-foreground);
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-accent:               var(--accent);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:               var(--border);
+  --color-input:                var(--input);
+  --color-ring:                 var(--ring);
+  --color-success:              var(--success);
+  --color-warning:              var(--warning);
+  --color-error:                var(--error);
   --radius:                     0.5rem;
 }
 
-/* ── Step 3: Base styles — use direct CSS, NOT @apply for custom tokens ───────
-   @apply only works for built-in Tailwind utilities (flex, p-4, etc.).
-   For our custom token classes use plain CSS here; use the classes in JSX.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Step 3: Base styles ────────────────────────────────────────────────────── */
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    border-color: var(--border);
     box-sizing: border-box;
   }
 
@@ -90,9 +91,9 @@
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   /* Slim custom scrollbar */
@@ -104,10 +105,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--border));
+    background-color: var(--border);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.4);
+    background-color: var(--muted-foreground);
+    opacity: 0.4;
   }
 }

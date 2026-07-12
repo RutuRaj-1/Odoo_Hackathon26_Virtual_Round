@@ -9,13 +9,13 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Zap,
   Building,
 } from 'lucide-react'
 import { cn } from '@/utils'
 import { ROUTES } from '@/constants'
 import { useAuth } from '@/hooks/useAuth'
 import { isAdmin, isAssetManager, isDepartmentHead, isEmployee } from '@/routes/guards'
+import { AssetFlowLogo } from '@/components/common/AssetFlowLogo'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface SidebarProps {
@@ -83,9 +83,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-            <Zap className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <AssetFlowLogo className="h-8 w-8 shrink-0" />
           <AnimatePresence>
             {!collapsed && (
               <motion.span

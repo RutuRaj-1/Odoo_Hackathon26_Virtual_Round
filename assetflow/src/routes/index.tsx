@@ -35,13 +35,15 @@ import { BookingFormPage } from '@/pages/bookings/BookingFormPage'
 import { MaintenancePage } from '@/pages/maintenance/MaintenancePage'
 import { MaintenanceDetailPage } from '@/pages/maintenance/MaintenanceDetailPage'
 import { MaintenanceFormPage } from '@/pages/maintenance/MaintenanceFormPage'
+import { LandingPage } from '@/pages/LandingPage'
+import { SettingsPage } from '@/pages/settings/SettingsPage'
 
 // ─── Router ────────────────────────────────────────────────────────────────────
 export const router = createBrowserRouter([
-  // Root redirect
+  // Root
   {
     path: '/',
-    element: <Navigate to={ROUTES.DASHBOARD} replace />,
+    element: <LandingPage />,
   },
 
   // ── Guest Routes (unauthenticated only) ──────────────────────────────────────
@@ -147,6 +149,9 @@ export const router = createBrowserRouter([
           { path: ROUTES.MAINTENANCE, element: <MaintenancePage /> },
           { path: ROUTES.MAINTENANCE_CREATE, element: <MaintenanceFormPage /> },
           { path: ROUTES.MAINTENANCE_DETAIL, element: <MaintenanceDetailPage /> },
+
+          // Settings
+          { path: ROUTES.SETTINGS, element: <SettingsPage /> },
         ],
       },
     ],
