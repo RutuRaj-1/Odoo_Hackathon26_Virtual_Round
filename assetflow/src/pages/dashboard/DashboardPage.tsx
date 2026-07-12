@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import {
@@ -6,9 +7,8 @@ import {
   CalendarCheck,
   Wrench,
   TrendingUp,
-  AlertTriangle,
-  CheckCircle,
   Clock,
+  CheckCircle2
 } from 'lucide-react'
 import {
   AreaChart,
@@ -23,94 +23,156 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  Legend
 } from 'recharts'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
 
-// ─── Mock data (replace with API calls) ───────────────────────────────────────
-const statsCards = [
-  {
-    id: 'total-assets',
-    label: 'Total Assets',
-    value: '2,847',
-    change: '+12%',
-    trend: 'up',
-    icon: Package,
-    color: 'bg-blue-500/10 text-blue-500',
-  },
-  {
-    id: 'active-employees',
-    label: 'Active Employees',
-    value: '543',
-    change: '+3%',
-    trend: 'up',
-    icon: Users,
-    color: 'bg-green-500/10 text-green-500',
-  },
-  {
-    id: 'pending-bookings',
-    label: 'Pending Bookings',
-    value: '28',
-    change: '-5%',
-    trend: 'down',
-    icon: CalendarCheck,
-    color: 'bg-yellow-500/10 text-yellow-500',
-  },
-  {
-    id: 'open-maintenance',
-    label: 'Open Maintenance',
-    value: '14',
-    change: '+2',
-    trend: 'up',
-    icon: Wrench,
-    color: 'bg-red-500/10 text-red-500',
-  },
+// ─── Static / Default Mock Fallbacks (for premium visuals on empty database) ────
+const defaultAssetTrendData = [
+  { month: 'Jan', active: 10, maintenance: 1, retired: 0 },
+  { month: 'Feb', active: 15, maintenance: 2, retired: 0 },
+  { month: 'Mar', active: 18, maintenance: 1, retired: 1 },
+  { month: 'Apr', active: 22, maintenance: 3, retired: 1 },
+  { month: 'May', active: 31, maintenance: 2, retired: 2 },
+  { month: 'Jun', active: 45, maintenance: 4, retired: 2 }
 ]
 
-const assetTrendData = [
-  { month: 'Jan', active: 2400, maintenance: 120, retired: 40 },
-  { month: 'Feb', active: 2500, maintenance: 100, retired: 45 },
-  { month: 'Mar', active: 2600, maintenance: 140, retired: 50 },
-  { month: 'Apr', active: 2550, maintenance: 160, retired: 55 },
-  { month: 'May', active: 2700, maintenance: 130, retired: 60 },
-  { month: 'Jun', active: 2847, maintenance: 110, retired: 65 },
-]
-
-const categoryData = [
-  { name: 'Hardware', value: 1240 },
-  { name: 'Software', value: 680 },
-  { name: 'Furniture', value: 420 },
-  { name: 'Vehicles', value: 320 },
-  { name: 'Equipment', value: 187 },
+const defaultCategoryData = [
+  { name: 'Hardware', value: 5 },
+  { name: 'Software', value: 3 },
+  { name: 'Furniture', value: 2 },
+  { name: 'Vehicles', value: 1 },
+  { name: 'Equipment', value: 2 }
 ]
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6']
 
-const maintenanceData = [
-  { week: 'W1', scheduled: 12, completed: 10, overdue: 2 },
-  { week: 'W2', scheduled: 15, completed: 14, overdue: 1 },
-  { week: 'W3', scheduled: 10, completed: 8, overdue: 2 },
-  { week: 'W4', scheduled: 18, completed: 16, overdue: 3 },
+const defaultMaintenanceData = [
+  { week: 'W1', scheduled: 2, completed: 1, overdue: 1 },
+  { week: 'W2', scheduled: 4, completed: 3, overdue: 0 },
+  { week: 'W3', scheduled: 3, completed: 3, overdue: 0 },
+  { week: 'W4', scheduled: 5, completed: 4, overdue: 1 }
 ]
 
-const recentActivity = [
-  { id: 1, type: 'booking', text: 'MacBook Pro #A-2041 booked by Sarah K.', time: '2m ago', status: 'approved', icon: CheckCircle },
-  { id: 2, type: 'maintenance', text: 'Server Rack #S-0012 scheduled for inspection', time: '15m ago', status: 'scheduled', icon: Clock },
-  { id: 3, type: 'alert', text: 'Asset #V-0089 warranty expiring in 7 days', time: '1h ago', status: 'warning', icon: AlertTriangle },
-  { id: 4, type: 'booking', text: 'Conference Room A booking approved', time: '2h ago', status: 'approved', icon: CheckCircle },
-  { id: 5, type: 'maintenance', text: 'Dell Monitor #M-0231 repair completed', time: '3h ago', status: 'completed', icon: CheckCircle },
+const defaultRecentActivity = [
+  { id: 1, text: 'Asset Database initialized successfully', time: '1h ago', status: 'approved', icon: CheckCircle2 },
+  { id: 2, text: 'Admin promoted Employee to Manager', time: '2h ago', status: 'approved', icon: CheckCircle2 },
+  { id: 3, text: 'Scheduled system performance check', time: '4h ago', status: 'scheduled', icon: Clock }
 ]
 
 const containerVariants: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
+  show: { transition: { staggerChildren: 0.07 } }
 }
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
 }
 
-// ─── Component ─────────────────────────────────────────────────────────────────
 export function DashboardPage() {
+  const [counts, setCounts] = useState({
+    totalAssets: 0,
+    activeEmployees: 0,
+    pendingBookings: 0,
+    openMaintenance: 0
+  })
+  const [categoryData, setCategoryData] = useState(defaultCategoryData)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        const [assetsSnap, usersSnap, bookingsSnap, maintenanceSnap] = await Promise.all([
+          getDocs(collection(db, 'assets')),
+          getDocs(collection(db, 'users')),
+          getDocs(collection(db, 'bookings')),
+          getDocs(collection(db, 'maintenanceRequests'))
+        ])
+
+        const assetsCount = assetsSnap.size
+        const employeesCount = usersSnap.docs.filter((d) => {
+          const u = d.data()
+          return u.role !== 'Admin' && u.status !== 'Inactive'
+        }).length
+        const bookingsCount = bookingsSnap.docs.filter((d) => {
+          const b = d.data()
+          return b.status === 'pending' || b.status === 'Pending'
+        }).length
+        const maintenanceCount = maintenanceSnap.docs.filter((d) => {
+          const m = d.data()
+          return m.status !== 'completed' && m.status !== 'Completed'
+        }).length
+
+        setCounts({
+          totalAssets: assetsCount,
+          activeEmployees: employeesCount,
+          pendingBookings: bookingsCount,
+          openMaintenance: maintenanceCount
+        })
+
+        // Compute real category breakdown from assets if there is data
+        if (assetsCount > 0) {
+          const countsMap: Record<string, number> = {}
+          assetsSnap.docs.forEach((doc) => {
+            const cat = doc.data().category || 'other'
+            const formattedCat = cat.charAt(0).toUpperCase() + cat.slice(1)
+            countsMap[formattedCat] = (countsMap[formattedCat] || 0) + 1
+          })
+          const computedCategories = Object.keys(countsMap).map((name) => ({
+            name,
+            value: countsMap[name]
+          }))
+          setCategoryData(computedCategories)
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard counts:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadDashboardData()
+  }, [])
+
+  const statsCards = [
+    {
+      id: 'total-assets',
+      label: 'Total Assets',
+      value: loading ? '...' : counts.totalAssets.toLocaleString(),
+      change: '+12%',
+      trend: 'up',
+      icon: Package,
+      color: 'bg-blue-500/10 text-blue-500'
+    },
+    {
+      id: 'active-employees',
+      label: 'Active Employees',
+      value: loading ? '...' : counts.activeEmployees.toLocaleString(),
+      change: '+3%',
+      trend: 'up',
+      icon: Users,
+      color: 'bg-green-500/10 text-green-500'
+    },
+    {
+      id: 'pending-bookings',
+      label: 'Pending Bookings',
+      value: loading ? '...' : counts.pendingBookings.toLocaleString(),
+      change: '-5%',
+      trend: 'down',
+      icon: CalendarCheck,
+      color: 'bg-yellow-500/10 text-yellow-500'
+    },
+    {
+      id: 'open-maintenance',
+      label: 'Open Maintenance',
+      value: loading ? '...' : counts.openMaintenance.toLocaleString(),
+      change: '+2',
+      trend: 'up',
+      icon: Wrench,
+      color: 'bg-red-500/10 text-red-500'
+    }
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -144,9 +206,7 @@ export function DashboardPage() {
                     <TrendingUp
                       className={`h-3 w-3 ${card.trend === 'up' ? 'text-green-500' : 'rotate-180 text-red-500'}`}
                     />
-                    <span
-                      className={card.trend === 'up' ? 'text-green-500' : 'text-red-500'}
-                    >
+                    <span className={card.trend === 'up' ? 'text-green-500' : 'text-red-500'}>
                       {card.change}
                     </span>
                     <span className="text-muted-foreground">vs last month</span>
@@ -172,7 +232,7 @@ export function DashboardPage() {
         >
           <h3 className="mb-4 text-sm font-semibold text-foreground">Asset Status Trend</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={assetTrendData}>
+            <AreaChart data={defaultAssetTrendData}>
               <defs>
                 <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -235,7 +295,7 @@ export function DashboardPage() {
         >
           <h3 className="mb-4 text-sm font-semibold text-foreground">Maintenance This Month</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={maintenanceData} barSize={20}>
+            <BarChart data={defaultMaintenanceData} barSize={20}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="week" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
@@ -259,14 +319,14 @@ export function DashboardPage() {
         >
           <h3 className="mb-4 text-sm font-semibold text-foreground">Recent Activity</h3>
           <ul className="space-y-3">
-            {recentActivity.map((item) => {
+            {defaultRecentActivity.map((item) => {
               const Icon = item.icon
               const iconColor =
                 item.status === 'approved' || item.status === 'completed'
                   ? 'text-green-500'
                   : item.status === 'warning'
-                    ? 'text-yellow-500'
-                    : 'text-blue-500'
+                  ? 'text-yellow-500'
+                  : 'text-blue-500'
               return (
                 <li key={item.id} className="flex items-start gap-3">
                   <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconColor}`} />
