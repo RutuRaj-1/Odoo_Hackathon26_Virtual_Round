@@ -155,8 +155,8 @@ function PhoneLoginForm() {
       setPhoneNumber(data.phone)
       setStep('otp')
       toast({ variant: 'info', title: 'OTP Sent', description: `Verification code sent to ${data.phone}` })
-    } catch {
-      toast({ variant: 'error', title: 'Failed to send OTP', description: 'Please check the number and try again.' })
+    } catch (err) {
+      toast({ variant: 'error', title: 'Failed to send OTP', description: err instanceof Error ? err.message : 'Please check the number and try again.' })
     }
   }
 
@@ -281,8 +281,8 @@ export function LoginPage() {
       await login(result.user.email, '')
       toast({ variant: 'success', title: 'Signed in with Google', description: result.user.email })
       navigate(ROUTES.DASHBOARD, { replace: true })
-    } catch {
-      toast({ variant: 'error', title: 'Google sign-in failed', description: 'Please try again.' })
+    } catch (err) {
+      toast({ variant: 'error', title: 'Google sign-in failed', description: err instanceof Error ? err.message : 'Please try again.' })
     } finally {
       setGoogleLoading(false)
     }

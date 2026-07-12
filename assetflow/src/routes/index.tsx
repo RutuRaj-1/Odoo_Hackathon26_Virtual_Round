@@ -1,5 +1,13 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { GuestRoute, ProtectedRoute } from './guards'
+import {
+  GuestRoute,
+  ProtectedRoute,
+  RoleDashboardRedirect,
+  AdminRoute,
+  AssetManagerRoute,
+  DepartmentHeadRoute,
+  EmployeeRoute
+} from './guards'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ROUTES } from '@/constants'
@@ -8,6 +16,10 @@ import { ROUTES } from '@/constants'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { SignupPage } from '@/pages/auth/SignupPage'
+import { UnauthorizedPage } from '@/pages/auth/UnauthorizedPage'
+
+// ─── Admin Pages ───────────────────────────────────────────────────────────────
+import { OrganizationPage } from '@/pages/admin/organization/OrganizationPage'
 
 // ─── App Pages ─────────────────────────────────────────────────────────────────
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
@@ -51,12 +63,69 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
+      // Central Dashboard Redirector
+      { path: ROUTES.DASHBOARD, element: <RoleDashboardRedirect /> },
+
+      // Standalone Unauthorized Page
+      { path: '/unauthorized', element: <UnauthorizedPage /> },
+
+      // ── Admin-Only Routes ──
+      {
+        element: <AdminRoute />,
+        children: [
+          {
+            element: <AppLayout />,
+            children: [
+              { path: '/admin/dashboard', element: <DashboardPage /> },
+              { path: '/admin/organization', element: <OrganizationPage /> },
+            ],
+          },
+        ],
+      },
+
+      // ── Asset Manager-Only Routes ──
+      {
+        element: <AssetManagerRoute />,
+        children: [
+          {
+            element: <AppLayout />,
+            children: [
+              { path: '/asset-manager/dashboard', element: <DashboardPage /> },
+            ],
+          },
+        ],
+      },
+
+      // ── Department Head-Only Routes ──
+      {
+        element: <DepartmentHeadRoute />,
+        children: [
+          {
+            element: <AppLayout />,
+            children: [
+              { path: '/department/dashboard', element: <DashboardPage /> },
+            ],
+          },
+        ],
+      },
+
+      // ── Employee-Only Routes ──
+      {
+        element: <EmployeeRoute />,
+        children: [
+          {
+            element: <AppLayout />,
+            children: [
+              { path: '/employee/dashboard', element: <DashboardPage /> },
+            ],
+          },
+        ],
+      },
+
+      // ── General Shared Pages (Wrapped in general AppLayout) ──
       {
         element: <AppLayout />,
         children: [
-          // Dashboard
-          { path: ROUTES.DASHBOARD, element: <DashboardPage /> },
-
           // Assets
           { path: ROUTES.ASSETS, element: <AssetsPage /> },
           { path: ROUTES.ASSET_CREATE, element: <AssetFormPage /> },

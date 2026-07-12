@@ -7,6 +7,11 @@ import { STORAGE_KEYS } from '@/constants'
 
 // Map pathname prefixes to readable page titles
 const PAGE_TITLES: Record<string, string> = {
+  '/admin/dashboard': 'Dashboard',
+  '/admin/organization': 'Organization Setup',
+  '/asset-manager/dashboard': 'Dashboard',
+  '/department/dashboard': 'Dashboard',
+  '/employee/dashboard': 'Dashboard',
   '/dashboard': 'Dashboard',
   '/assets': 'Assets',
   '/employees': 'Employees',

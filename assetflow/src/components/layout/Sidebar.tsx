@@ -10,38 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Building,
 } from 'lucide-react'
 import { cn } from '@/utils'
 import { ROUTES } from '@/constants'
-
-// ─── Nav config ────────────────────────────────────────────────────────────────
-const NAV_ITEMS = [
-  {
-    label: 'Dashboard',
-    href: ROUTES.DASHBOARD,
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Assets',
-    href: ROUTES.ASSETS,
-    icon: Package,
-  },
-  {
-    label: 'Employees',
-    href: ROUTES.EMPLOYEES,
-    icon: Users,
-  },
-  {
-    label: 'Bookings',
-    href: ROUTES.BOOKINGS,
-    icon: CalendarCheck,
-  },
-  {
-    label: 'Maintenance',
-    href: ROUTES.MAINTENANCE,
-    icon: Wrench,
-  },
-] as const
+import { useAuth } from '@/hooks/useAuth'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface SidebarProps {
@@ -52,6 +25,52 @@ interface SidebarProps {
 // ─── Component ─────────────────────────────────────────────────────────────────
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { pathname } = useLocation()
+  const { role } = useAuth()
+
+  // Get specific dashboard path
+  let dashboardPath: string = ROUTES.DASHBOARD
+  if (role === 'Admin') dashboardPath = '/admin/dashboard'
+  else if (role === 'Asset Manager') dashboardPath = '/asset-manager/dashboard'
+  else if (role === 'Department Head') dashboardPath = '/department/dashboard'
+  else if (role === 'Employee') dashboardPath = '/employee/dashboard'
+
+  // Dynamic Navigation Items
+  const navItems = [
+    {
+      label: 'Dashboard',
+      href: dashboardPath,
+      icon: LayoutDashboard,
+    },
+    {
+      label: 'Assets',
+      href: ROUTES.ASSETS,
+      icon: Package,
+    },
+    {
+      label: 'Employees',
+      href: ROUTES.EMPLOYEES,
+      icon: Users,
+    },
+    {
+      label: 'Bookings',
+      href: ROUTES.BOOKINGS,
+      icon: CalendarCheck,
+    },
+    {
+      label: 'Maintenance',
+      href: ROUTES.MAINTENANCE,
+      icon: Wrench,
+    },
+  ]
+
+  // Inject Organization Setup for Admins
+  if (role === 'Admin') {
+    navItems.push({
+      label: 'Organization',
+      href: '/admin/organization',
+      icon: Building,
+    })
+  }
 
   return (
     <motion.aside
@@ -86,7 +105,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             const Icon = item.icon
             return (

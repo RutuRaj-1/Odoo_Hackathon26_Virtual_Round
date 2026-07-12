@@ -8,7 +8,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ pageTitle }: TopbarProps) {
-  const { user, logout } = useAuth()
+  const { currentUser: user, logout } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
 
   return (

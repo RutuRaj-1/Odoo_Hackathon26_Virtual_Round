@@ -6,15 +6,42 @@ export interface BaseEntity {
 }
 
 // ─── Auth ──────────────────────────────────────────────────────────────────────
-export interface User extends BaseEntity {
+export interface User {
+  id: string
+  uid?: string
   email: string
   name: string
   role: UserRole
   avatarUrl?: string
+  departmentId?: string | null
   department?: string
+  status?: 'Active' | 'Inactive'
+  createdAt?: any
+  updatedAt?: any
 }
 
-export type UserRole = 'admin' | 'manager' | 'employee' | 'viewer' | 'Admin' | 'Asset Manager' | 'Department Head' | 'Employee'
+export type UserRole = 'Admin' | 'Asset Manager' | 'Department Head' | 'Employee' | 'admin' | 'manager' | 'employee' | 'viewer'
+
+export interface Department {
+  id: string
+  name: string
+  code: string
+  parentDepartmentId: string | null
+  departmentHeadId: string | null
+  status: 'Active' | 'Inactive'
+  createdAt?: any
+  updatedAt?: any
+}
+
+export interface AssetCategoryDoc {
+  id: string
+  name: string
+  description: string
+  warrantyPeriod: string | number
+  status: 'Active' | 'Inactive'
+  createdAt?: any
+  updatedAt?: any
+}
 
 export interface AuthState {
   user: User | null
